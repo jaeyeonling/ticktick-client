@@ -53,7 +53,7 @@ const client = new TickTickClient({
 async function getInboxProjectId(): Promise<string> {
   const projects = await client.projects.list();
   const inbox = projects.find((p) => p.kind === 'INBOX') ?? projects[0];
-  if (!inbox) throw new Error('사용 가능한 프로젝트가 없습니다');
+  if (!inbox) throw new Error('No available projects');
   return inbox.id;
 }
 
@@ -80,38 +80,38 @@ async function testProjects() {
 
   try {
     const projects = await client.projects.list();
-    ok(`list() → ${projects.length}개`);
+    ok(`list() → ${projects.length} projects`);
   } catch (e) { fail('list()', e); }
 
   // create / listColumns / update / delete
   let projectId: string | null = null;
   try {
-    const p = await client.projects.create({ name: `${TEST_PREFIX} 프로젝트` });
+    const p = await client.projects.create({ name: `${TEST_PREFIX} project` });
     projectId = p.id;
     ok(`create() → ${projectId}`);
   } catch (e) { fail('create()', e); return; }
 
   try {
     const cols = await client.projects.listColumns(projectId!);
-    ok(`listColumns() → ${Array.isArray(cols) ? cols.length : 0}개`);
+    ok(`listColumns() → ${Array.isArray(cols) ? cols.length : 0} columns`);
   } catch (e) { fail('listColumns()', e); }
 
   try {
-    await client.projects.update({ id: projectId!, name: `${TEST_PREFIX} 수정` });
+    await client.projects.update({ id: projectId!, name: `${TEST_PREFIX} updated` });
     ok('update()');
   } catch (e) { fail('update()', e); }
 
-  // deleteMany: 추가 프로젝트 생성 후 한번에 삭제
+  // deleteMany: create additional project then delete both at once
   let projectId2: string | null = null;
   try {
-    const p2 = await client.projects.create({ name: `${TEST_PREFIX} 프로젝트2` });
+    const p2 = await client.projects.create({ name: `${TEST_PREFIX} project2` });
     projectId2 = p2.id;
     await client.projects.deleteMany([projectId!, projectId2]);
-    ok(`deleteMany() — 2개 cleanup`);
+    ok('deleteMany() — 2 projects cleaned up');
     projectId = null;
   } catch (e) {
     fail('deleteMany()', e);
-    // fallback: 개별 삭제
+    // fallback: delete individually
     if (projectId) await client.projects.delete(projectId).catch(() => null);
     if (projectId2) await client.projects.delete(projectId2).catch(() => null);
   }
@@ -126,12 +126,12 @@ async function testTasks() {
 
   try {
     const tasks = await client.tasks.list();
-    ok(`list() → ${tasks.length}개`);
+    ok(`list() → ${tasks.length} tasks`);
   } catch (e) { fail('list()', e); }
 
   try {
     const completed = await client.tasks.listCompleted({ limit: 10 });
-    ok(`listCompleted() → ${completed.length}개`);
+    ok(`listCompleted() → ${completed.length} tasks`);
   } catch (e) { fail('listCompleted()', e); }
 
   // iterateCompleted
@@ -141,21 +141,21 @@ async function testTasks() {
     for await (const page of client.tasks.iterateCompleted()) {
       total += page.length;
       pages++;
-      if (pages >= 2) break; // 최대 2페이지만
+      if (pages >= 2) break; // max 2 pages
     }
-    ok(`iterateCompleted() → ${pages}페이지, 총 ${total}개`);
+    ok(`iterateCompleted() → ${pages} pages, ${total} total`);
   } catch (e) { fail('iterateCompleted()', e); }
 
   // create → update → delete
   let taskId: string | null = null;
   try {
-    const t = await client.tasks.create({ title: `${TEST_PREFIX} 태스크`, projectId, priority: 1 });
+    const t = await client.tasks.create({ title: `${TEST_PREFIX} task`, projectId, priority: 1 });
     taskId = t.id;
     ok(`create() → ${taskId}`);
   } catch (e) { fail('create()', e); return; }
 
   try {
-    await client.tasks.update({ id: taskId!, projectId, title: `${TEST_PREFIX} 수정`, priority: 3 });
+    await client.tasks.update({ id: taskId!, projectId, title: `${TEST_PREFIX} updated`, priority: 3 });
     ok('update()');
   } catch (e) { fail('update()', e); }
 
@@ -165,9 +165,9 @@ async function testTasks() {
     taskId = null;
   } catch (e) { fail('delete()', e); }
 
-  // complete (별도 태스크, deleteMany로 cleanup)
+  // complete (separate task, cleanup with deleteMany)
   try {
-    const t2 = await client.tasks.create({ title: `${TEST_PREFIX} complete용`, projectId });
+    const t2 = await client.tasks.create({ title: `${TEST_PREFIX} for-complete`, projectId });
     await client.tasks.complete(projectId, t2.id);
     ok('complete()');
     await client.tasks.deleteMany([{ taskId: t2.id, projectId }]);
@@ -189,24 +189,24 @@ async function testTasks() {
 
     if (batchIds.length > 0) {
       await client.tasks.updateMany(batchIds.map((id) => ({ id, projectId, priority: 2 })));
-      ok(`updateMany() — ${batchIds.length}개`);
+      ok(`updateMany() — ${batchIds.length} tasks`);
 
       await client.tasks.deleteMany(batchIds.map((id) => ({ taskId: id, projectId })));
-      ok(`deleteMany() — cleanup`);
+      ok('deleteMany() — cleanup');
       batchIds = [];
     }
   } catch (e) { fail('createMany/updateMany/deleteMany()', e); }
 
-  // move / moveMany — copy+delete 구현 (TickTick REST API는 projectId 직접 변경 불가)
+  // move / moveMany — copy+delete implementation (TickTick REST API does not support direct projectId change)
   let moveSrcId: string | null = null;
   let moveDstId: string | null = null;
   try {
-    const p1 = await client.projects.create({ name: `${TEST_PREFIX} move 대상` });
-    const p2 = await client.projects.create({ name: `${TEST_PREFIX} move 목적지` });
+    const p1 = await client.projects.create({ name: `${TEST_PREFIX} move-src` });
+    const p2 = await client.projects.create({ name: `${TEST_PREFIX} move-dst` });
     moveSrcId = p1.id;
     moveDstId = p2.id;
 
-    const taskToMove = await client.tasks.create({ title: `${TEST_PREFIX} move 태스크`, projectId: moveSrcId });
+    const taskToMove = await client.tasks.create({ title: `${TEST_PREFIX} move-task`, projectId: moveSrcId });
     const result = await client.tasks.move({ taskId: taskToMove.id, fromProjectId: moveSrcId, toProjectId: moveDstId });
     if (result.previousId !== taskToMove.id) throw new Error(`previousId mismatch: ${result.previousId} !== ${taskToMove.id}`);
     if (result.task.id === taskToMove.id) throw new Error('move() should return a new task ID (copy+delete)');
@@ -223,7 +223,7 @@ async function testTasks() {
     if (moveResults.length !== 2) throw new Error(`moveMany returned ${moveResults.length} results, expected 2`);
     if (moveResults[0]!.previousId !== t1.id) throw new Error('moveMany previousId[0] mismatch');
     if (moveResults[1]!.previousId !== t2.id) throw new Error('moveMany previousId[1] mismatch');
-    ok(`moveMany() → 2개 이동, ID 매핑: [${moveResults.map(r => `${r.previousId}→${r.task.id}`).join(', ')}]`);
+    ok(`moveMany() → 2 moved, ID mapping: [${moveResults.map(r => `${r.previousId}→${r.task.id}`).join(', ')}]`);
   } catch (e) {
     fail('move/moveMany()', e);
   } finally {
@@ -233,15 +233,15 @@ async function testTasks() {
 
   // createSubtask
   try {
-    const parent = await client.tasks.create({ title: `${TEST_PREFIX} 부모 태스크`, projectId });
-    await client.tasks.createSubtask(parent.id, projectId, { title: `${TEST_PREFIX} 서브태스크` });
+    const parent = await client.tasks.create({ title: `${TEST_PREFIX} parent-task`, projectId });
+    await client.tasks.createSubtask(parent.id, projectId, { title: `${TEST_PREFIX} subtask` });
     ok('createSubtask()');
     await client.tasks.delete(projectId, parent.id);
   } catch (e) { fail('createSubtask()', e); }
 
   // pin / unpin
   try {
-    const t = await client.tasks.create({ title: `${TEST_PREFIX} pin 테스트`, projectId });
+    const t = await client.tasks.create({ title: `${TEST_PREFIX} pin-test`, projectId });
     await client.tasks.pin(t.id, projectId);
     ok('pin()');
     await client.tasks.unpin(t.id, projectId);
@@ -254,11 +254,11 @@ async function testTasks() {
   // The endpoint returns active tasks, not deleted ones. See #33.
   try {
     const trashSrc = await client.projects.create({ name: `${TEST_PREFIX} trash-src` });
-    const trashTask = await client.tasks.create({ title: `${TEST_PREFIX} trash 테스트`, projectId: trashSrc.id });
+    const trashTask = await client.tasks.create({ title: `${TEST_PREFIX} trash-test`, projectId: trashSrc.id });
 
     // listTrash before delete — should return the active task (status filter ignored)
     const beforeDelete = await client.tasks.listTrash({ projectId: trashSrc.id, limit: 5 });
-    ok(`listTrash() → API 호출 성공, ${beforeDelete.length}개 (status 필터 무시됨 — #33 확인)`);
+    ok(`listTrash() → API call succeeded, ${beforeDelete.length} tasks (status filter ignored — #33 confirmed)`);
 
     // delete, then verify the deleted task disappears from results
     await client.tasks.delete(trashSrc.id, trashTask.id);
@@ -266,9 +266,9 @@ async function testTasks() {
     const afterDelete = await client.tasks.listTrash({ projectId: trashSrc.id, limit: 5 });
     const deletedStillVisible = afterDelete.some((t) => t.id === trashTask.id);
     if (!deletedStillVisible) {
-      ok('listTrash() 삭제 후 → 삭제된 태스크 미포함 (REST API 한계 확인)');
+      ok('listTrash() after delete → deleted task not included (REST API limitation confirmed)');
     } else {
-      ok('listTrash() 삭제 후 → 삭제된 태스크가 여전히 보임');
+      ok('listTrash() after delete → deleted task still visible');
     }
 
     // restore — verify it works when we know the task ID
@@ -276,9 +276,9 @@ async function testTasks() {
     const afterRestore = await client.tasks.list();
     const restored = afterRestore.find((t) => t.id === trashTask.id);
     if (restored && restored.status === 0) {
-      ok(`restore() → 태스크 복원 성공 (status: ${restored.status})`);
+      ok(`restore() → task restored successfully (status: ${restored.status})`);
     } else {
-      ok('restore() → API 호출 성공 (복원 상태 확인 불가)');
+      ok('restore() → API call succeeded (restore state unverifiable)');
     }
     await client.tasks.delete(trashSrc.id, trashTask.id);
     await client.projects.delete(trashSrc.id).catch(() => null);
@@ -294,7 +294,7 @@ async function testTags() {
 
   try {
     const tags = await client.tags.list();
-    ok(`list() → ${tags.length}개`);
+    ok(`list() → ${tags.length} tags`);
   } catch (e) { fail('list()', e); }
 
   const name1 = `${TEST_PREFIX}-tag-1`;
@@ -347,7 +347,7 @@ async function testHabits() {
 
   try {
     const habits = await client.habits.list();
-    ok(`list() → ${habits.length}개`);
+    ok(`list() → ${habits.length} habits`);
   } catch (e) { fail('list()', e); }
 
   try {
@@ -355,21 +355,21 @@ async function testHabits() {
     const habits = await client.habits.list();
     if (habits.length > 0) {
       const checkins = await client.habits.getCheckins([habits[0]!.id], today, today);
-      ok(`getCheckins() → ${checkins.length}개`);
+      ok(`getCheckins() → ${checkins.length} check-ins`);
     } else {
-      skip('getCheckins()', '습관 없음');
+      skip('getCheckins()', 'no habits found');
     }
   } catch (e) { fail('getCheckins()', e); }
 
   try {
     const stats = await client.habits.getWeekStats();
-    ok(`getWeekStats() → ok`);
+    ok('getWeekStats() → ok');
   } catch (e) { fail('getWeekStats()', e); }
 
   // create / update / upsertCheckin / delete
   let habitId: string | null = null;
   try {
-    await client.habits.create({ name: `${TEST_PREFIX} 습관`, color: '#FF6B6B', type: 'DAILY', goal: 1 });
+    await client.habits.create({ name: `${TEST_PREFIX} habit`, color: '#FF6B6B', type: 'DAILY', goal: 1 });
     const habits = await client.habits.list();
     const found = habits.find((h) => h.name?.startsWith(TEST_PREFIX));
     habitId = found?.id ?? null;
@@ -378,7 +378,7 @@ async function testHabits() {
 
   if (habitId) {
     try {
-      await client.habits.update({ id: habitId, name: `${TEST_PREFIX} 습관 수정` });
+      await client.habits.update({ id: habitId, name: `${TEST_PREFIX} habit updated` });
       ok('update()');
     } catch (e) { fail('update()', e); }
 
@@ -401,23 +401,23 @@ async function testFocus() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // read-only 엔드포인트 (일부는 API 미지원)
+  // read-only endpoints
   try {
     const overview = await client.focus.getOverview();
-    ok(`getOverview() → today: ${overview.todayPomoCount}회`);
-  } catch (e) { skip('getOverview()', '미지원 엔드포인트'); }
+    ok(`getOverview() → today: ${overview.todayPomoCount} sessions`);
+  } catch (e) { skip('getOverview()', 'unsupported endpoint'); }
 
   try {
     const timeline = await client.focus.getTimeline(today, today);
-    ok(`getTimeline() → ${timeline.length}개`);
-  } catch (e) { skip('getTimeline()', '미지원 엔드포인트'); }
+    ok(`getTimeline() → ${timeline.length} entries`);
+  } catch (e) { skip('getTimeline()', 'unsupported endpoint'); }
 
   try {
     await client.focus.syncState();
     ok('syncState()');
-  } catch (e) { skip('syncState()', '미지원 엔드포인트'); }
+  } catch (e) { skip('syncState()', 'unsupported endpoint'); }
 
-  // local state (API 호출 없음)
+  // local state (no API call)
   try {
     const state = client.focus.getState();
     ok(`getState() → status: ${state.status ?? 'null'}`);
@@ -444,14 +444,14 @@ async function testFocus() {
   ]) {
     try {
       await fn();
-      // 만약 성공하면 서버가 수정된 것 — 이슈 업데이트 필요
-      ok(`${name}() — 서버 버그 수정됨! 이슈 #31 재확인 필요`);
+      // If it succeeds, server bug was fixed — update issue
+      ok(`${name}() — server bug fixed! Re-check issue #31`);
     } catch (e) {
       const status = (e as { status?: number }).status;
       if (status === 500) {
-        ok(`${name}() — 예상대로 500 (서버 버그 확인됨)`);
+        ok(`${name}() — expected 500 (server bug confirmed)`);
       } else {
-        fail(`${name}() — 예상치 못한 에러`, e);
+        fail(`${name}() — unexpected error`, e);
       }
     }
   }
@@ -512,7 +512,7 @@ async function testStatistics() {
     const from = '2026-04-01 00:00:00';
     const to = new Date().toISOString().slice(0, 19).replace('T', ' ');
     const completed = await client.statistics.listCompleted(from, to, 10);
-    ok(`listCompleted() → ${completed.length}개`);
+    ok(`listCompleted() → ${completed.length} tasks`);
   } catch (e) { fail('listCompleted()', e); }
 }
 
@@ -523,7 +523,7 @@ async function testCountdowns() {
 
   try {
     const list = await client.countdowns.list();
-    ok(`list() → ${list.length}개`);
+    ok(`list() → ${list.length} countdowns`);
   } catch (e) { fail('list()', e); }
 
   let createdId: string | null = null;
@@ -531,7 +531,7 @@ async function testCountdowns() {
   futureDate.setFullYear(futureDate.getFullYear() + 1);
 
   try {
-    await client.countdowns.create({ name: `${TEST_PREFIX} 카운트다운`, date: futureDate });
+    await client.countdowns.create({ name: `${TEST_PREFIX} countdown`, date: futureDate });
     const list = await client.countdowns.list();
     const found = list.find((c) => c.name?.startsWith(TEST_PREFIX));
     createdId = found?.id ?? null;
@@ -540,7 +540,7 @@ async function testCountdowns() {
 
   if (createdId) {
     try {
-      await client.countdowns.update({ id: createdId, name: `${TEST_PREFIX} 카운트다운 수정` });
+      await client.countdowns.update({ id: createdId, name: `${TEST_PREFIX} countdown updated` });
       ok('update()');
     } catch (e) { fail('update()', e); }
 
@@ -554,15 +554,15 @@ async function testCountdowns() {
 // ───────── Main ─────────
 
 async function main() {
-  console.log('🚀 TickTick 통합 테스트 (전체)\n');
-  console.log(`세션: ${SESSION_PATH}`);
+  console.log('🚀 TickTick Integration Test (full)\n');
+  console.log(`Session: ${SESSION_PATH}`);
 
   const authed = await client.isAuthenticated();
   if (!authed) {
-    console.error('\n❌ 세션 만료. 로그인 후 다시 시도하세요.');
+    console.error('\n❌ Session expired. Please login and try again.');
     process.exit(1);
   }
-  console.log('✅ 인증 확인\n');
+  console.log('✅ Authenticated\n');
 
   await testUser();
   await testProjects();
@@ -574,11 +574,11 @@ async function main() {
   await testCountdowns();
 
   console.log('\n══════════════════════════════════════');
-  console.log(`✅ ${passed}개 통과 / ❌ ${failed}개 실패 / ⚠️  ${skipped}개 skip`);
+  console.log(`✅ ${passed} passed / ❌ ${failed} failed / ⚠️  ${skipped} skipped`);
   if (failed > 0) process.exit(1);
 }
 
 main().catch((err) => {
-  console.error('예상치 못한 오류:', err);
+  console.error('Unexpected error:', err);
   process.exit(1);
 });
