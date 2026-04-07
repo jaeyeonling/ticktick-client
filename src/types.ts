@@ -161,13 +161,23 @@ export type TickTickUserProfile = {
   readonly username?: string;
   readonly email?: string | null;
   readonly name?: string | null;
+  readonly displayName?: string | null;
   readonly userId?: string;
-  readonly inboxId?: string;
   readonly phone?: string | null;
   readonly picture?: string;
   readonly locale?: string;
-  readonly pro?: boolean;
+};
+
+export type TickTickUserStatus = {
+  readonly userId: string;
+  readonly username: string;
+  readonly pro: boolean;
+  readonly teamPro: boolean;
+  readonly proStartDate?: string;
   readonly proEndDate?: string;
+  readonly inboxId: string;
+  readonly freeTrial: boolean;
+  readonly subscribeType?: string;
 };
 
 export type TickTickHabitDraft = {
@@ -228,14 +238,6 @@ export type TickTickRanking = {
   readonly level: number;
 };
 
-export type TickTickDailyStat = {
-  readonly day: string;
-  readonly completedCount: number;
-  readonly overdueCompleteCount: number;
-  readonly onTimeCompleteCount: number;
-  readonly pomoCount: number;
-  readonly pomoDuration: number;
-};
 
 export type TickTickCountdownType = 'countdown' | 'anniversary' | 'birthday' | 'holiday';
 
@@ -251,18 +253,10 @@ export type TickTickCountdownDraft = {
 export type TickTickCountdown = {
   readonly id: string;
   readonly name: string;
-  readonly date: string;
+  readonly date: number; // YYYYMMDD integer (e.g. 20261231)
   readonly type?: TickTickCountdownType;
   readonly color?: string;
   readonly ignoreYear?: boolean;
   readonly remark?: string;
 };
 
-export type TickTickSummary = {
-  readonly score: number;
-  readonly level: number;
-  readonly todayCompleted: number;
-  readonly totalCompleted: number;
-  readonly todayPomoCount: number;
-  readonly totalPomoCount: number;
-};

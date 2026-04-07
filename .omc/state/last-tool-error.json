@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cat > /tmp/live-final.ts << 'EOF'\\nimport { TickTickClient, FileSessionStore } from './src/index.js';\\n\\nconst client = new TickTickClient({\\n  credentials: { username: process.env.TICKTIC...",
+  "error": "Exit code 1\n\nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError: Transform failed with 4 errors:\n/private/tmp/live-final.ts:8:15: ERROR: Top-level await is currently not supported with the \"cjs\" output format\n/private/tmp/live-final.ts:11:16: ERROR: Top-level await is currently not supported with the \"cjs\" output format\n/private/tmp/live-final.ts:14:18: ERROR: Top-level await is currently not supported with the \"cjs\" output format\n/private/tmp/live-final.ts:17:19: ERROR...",
+  "timestamp": "2026-04-07T02:17:40.852Z",
+  "retry_count": 1
+}

@@ -1,0 +1,363 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775517205909,
+  "projectRoot": "/Users/jaeyeonling/workspace/github/jaeyeonling/ticktick-client",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=22",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "vitest",
+        "version": "3.1.1",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 22"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "build": "tsup",
+      "dev": "tsup --watch",
+      "test": "vitest run",
+      "test:watch": "vitest",
+      "lint": "tsc --noEmit"
+    }
+  },
+  "conventions": {
+    "namingStyle": "camelCase/PascalCase",
+    "importStyle": "ES modules",
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "src"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 6,
+      "lastAccessed": 1775517205877,
+      "keyFiles": [
+        "index.cjs",
+        "index.cjs.map",
+        "index.d.cts",
+        "index.d.ts",
+        "index.js"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 5,
+      "lastAccessed": 1775517205878,
+      "keyFiles": [
+        "client.ts",
+        "errors.ts",
+        "index.ts",
+        "session-store.ts",
+        "types.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/types.ts",
+      "accessCount": 15,
+      "lastAccessed": 1775528158119,
+      "type": "file"
+    },
+    {
+      "path": "src/client.ts",
+      "accessCount": 9,
+      "lastAccessed": 1775524709944,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 8,
+      "lastAccessed": 1775528233111,
+      "type": "directory"
+    },
+    {
+      "path": "src/modules/statistics.ts",
+      "accessCount": 7,
+      "lastAccessed": 1775528136911,
+      "type": "file"
+    },
+    {
+      "path": "src/index.ts",
+      "accessCount": 7,
+      "lastAccessed": 1775528176093,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/tasks.ts",
+      "accessCount": 5,
+      "lastAccessed": 1775521417838,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 5,
+      "lastAccessed": 1775528213618,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/projects.ts",
+      "accessCount": 4,
+      "lastAccessed": 1775523970601,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/tags.ts",
+      "accessCount": 4,
+      "lastAccessed": 1775524248546,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/habits.ts",
+      "accessCount": 4,
+      "lastAccessed": 1775524333754,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/focus.ts",
+      "accessCount": 4,
+      "lastAccessed": 1775524533603,
+      "type": "file"
+    },
+    {
+      "path": "src/errors.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775519388642,
+      "type": "file"
+    },
+    {
+      "path": "src/session-store.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775519388976,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/countdowns.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775527493346,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/countdowns.test.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775527516593,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/user.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775528141678,
+      "type": "file"
+    },
+    {
+      "path": "test-live.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775528279071,
+      "type": "file"
+    },
+    {
+      "path": "src/internal/ids.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775519389707,
+      "type": "file"
+    },
+    {
+      "path": "src/internal/cookies.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775519390078,
+      "type": "file"
+    },
+    {
+      "path": "vitest.config.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775528233014,
+      "type": "file"
+    },
+    {
+      "path": "tests/helpers.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519805185,
+      "type": "file"
+    },
+    {
+      "path": "tests/errors.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519813806,
+      "type": "file"
+    },
+    {
+      "path": "tests/internal/ids.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519821468,
+      "type": "file"
+    },
+    {
+      "path": "tests/internal/cookies.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519832365,
+      "type": "file"
+    },
+    {
+      "path": "tests/session-store.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519846224,
+      "type": "file"
+    },
+    {
+      "path": "tests/client.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519871017,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/tasks.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519891577,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/projects.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519899330,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/tags.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519906877,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/habits.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519919916,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/focus.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519931096,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/statistics.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775519938074,
+      "type": "file"
+    },
+    {
+      "path": "tests/semantic.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775520049520,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/user.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775520058475,
+      "type": "file"
+    },
+    {
+      "path": "src/semantic.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775520082357,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/tasks-phase2.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775521369959,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/projects-phase3.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775523952507,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/tags-phase4.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775524232633,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/habits-phase5.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775524308593,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/focus-phase6.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775524509063,
+      "type": "file"
+    },
+    {
+      "path": "tests/modules/statistics-phase7.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775524592606,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1775528220213,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.json",
+      "accessCount": 1,
+      "lastAccessed": 1775528221920,
+      "type": "file"
+    },
+    {
+      "path": ".claude/settings.local.json",
+      "accessCount": 1,
+      "lastAccessed": 1775528227830,
+      "type": "file"
+    },
+    {
+      "path": ".env",
+      "accessCount": 1,
+      "lastAccessed": 1775528228459,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

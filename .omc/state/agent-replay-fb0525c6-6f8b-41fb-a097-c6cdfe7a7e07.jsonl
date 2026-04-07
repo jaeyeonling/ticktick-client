@@ -1,0 +1,8 @@
+{"t":0,"agent":"system","event":"keyword_detected","keyword":"tdd"}
+{"t":0,"agent":"system","event":"keyword_detected","keyword":"tdd"}
+{"t":0,"agent":"ab22751","agent_type":"planner","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ab22751","agent_type":"planner","event":"agent_stop","success":true,"duration_ms":36419}
+{"t":0,"agent":"aaa48c9","agent_type":"planner","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"aaa48c9","agent_type":"planner","event":"agent_stop","success":true,"duration_ms":259837}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"ecc:tdd"}
+{"t":0,"agent":"acb04c1","agent_type":"unknown","event":"agent_stop","success":true}

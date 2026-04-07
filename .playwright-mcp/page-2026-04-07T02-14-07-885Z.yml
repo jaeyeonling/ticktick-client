@@ -1,0 +1,85 @@
+- generic [ref=e1]:
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - img [ref=e16] [cursor=pointer]
+          - generic [ref=e18]:
+            - button [ref=e20] [cursor=pointer]:
+              - link [ref=e21]:
+                - /url: "#p/inbox/tasks"
+                - img [ref=e22]
+            - button [ref=e25] [cursor=pointer]:
+              - link [ref=e26]:
+                - /url: "#m/all/matrix"
+                - img [ref=e27]
+            - button [ref=e30] [cursor=pointer]:
+              - link [ref=e31]:
+                - /url: "#c/all/calendar/m"
+                - img [ref=e32]
+            - button [ref=e35] [cursor=pointer]:
+              - link [ref=e36]:
+                - /url: "#focus"
+                - img [ref=e40]
+            - button [ref=e44] [cursor=pointer]:
+              - link [ref=e45]:
+                - /url: "#s"
+                - img [ref=e46]
+          - generic [ref=e48]:
+            - img [ref=e53] [cursor=pointer]
+            - button [ref=e56] [cursor=pointer]:
+              - img [ref=e59]
+            - button [ref=e62] [cursor=pointer]:
+              - img [ref=e65]
+        - status [ref=e67]
+      - generic [ref=e753]:
+        - generic [ref=e754]:
+          - generic [ref=e755]:
+            - img [ref=e756] [cursor=pointer]
+            - heading "검색 대상" [level=5] [ref=e759]:
+              - generic [ref=e760]: 검색 대상
+            - img [ref=e761] [cursor=pointer]
+          - button "필터로 저장하기" [ref=e763] [cursor=pointer]
+        - generic [ref=e764]:
+          - generic [ref=e766]:
+            - generic [ref=e767]: 모든 시간
+            - img [ref=e768]
+          - generic [ref=e771]:
+            - generic [ref=e772]: 모든 리스트
+            - img [ref=e773]
+          - generic [ref=e776]:
+            - generic [ref=e777]: 모든 태그
+            - img [ref=e778]
+          - generic [ref=e781]:
+            - generic [ref=e782]: 모든 상태
+            - img [ref=e783]
+          - generic [ref=e786]:
+            - generic [ref=e787]: 더 보기
+            - img [ref=e788]
+        - generic [ref=e791]:
+          - generic [ref=e792]:
+            - img [ref=e793]
+            - img [ref=e795]
+            - img [ref=e797]
+            - img [ref=e799]
+            - img [ref=e801]
+          - generic [ref=e803]: 검색결과가 없습니다
+          - generic [ref=e804]: 다른 키워드를 시도해 보세요
+      - generic:
+        - list
+    - status [ref=e725]
+  - generic [ref=e727]:
+    - generic [ref=e728]:
+      - textbox "검색" [active] [ref=e729]
+      - img [ref=e730] [cursor=pointer]
+      - img [ref=e732] [cursor=pointer]
+    - generic [ref=e735]:
+      - generic [ref=e737]:
+        - img [ref=e738]
+        - img [ref=e740]
+        - img [ref=e742]
+        - img [ref=e744]
+        - img [ref=e746]
+      - paragraph [ref=e748]: 작업, 태그, 목록 및 필터를 검색합니다.
+  - generic:
+    - button "Choose File"
