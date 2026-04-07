@@ -3,13 +3,13 @@ import { createClient } from '../helpers.js';
 
 describe('FocusModule', () => {
   describe('getTimeline()', () => {
-    it('should GET /api/v2/pomodoros with date params', async () => {
+    it('should GET /api/v2/pomodoros with ms timestamp params', async () => {
       const { client, mockFetch } = createClient([{ status: 200, body: [] }]);
       await client.focus.getTimeline('2026-04-01', '2026-04-07');
       const url = mockFetch.calls[0]![0]!;
       expect(url).toContain('/api/v2/pomodoros');
-      expect(url).toContain('startDate=2026-04-01');
-      expect(url).toContain('endDate=2026-04-07');
+      expect(url).toContain('from=');
+      expect(url).toContain('to=');
     });
 
     it('should return timeline entries', async () => {
@@ -22,10 +22,10 @@ describe('FocusModule', () => {
   });
 
   describe('getOverview()', () => {
-    it('should GET /api/v2/pomodoros/statistics', async () => {
+    it('should GET /api/v2/pomodoros/statistics/generalForDesktop', async () => {
       const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
       await client.focus.getOverview();
-      expect(mockFetch.calls[0]![0]).toContain('/api/v2/pomodoros/statistics');
+      expect(mockFetch.calls[0]![0]).toContain('/api/v2/pomodoros/statistics/generalForDesktop');
       expect(mockFetch.calls[0]![1]?.method).toBe('GET');
     });
 

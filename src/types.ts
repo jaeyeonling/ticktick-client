@@ -62,13 +62,8 @@ export type TickTickTaskMove = {
 };
 
 export type TickTickTrashOptions = {
+  readonly projectId: string;
   readonly limit?: number;
-  readonly type?: number;
-};
-
-export type TickTickTrashResponse = {
-  readonly tasks: readonly TickTickTask[];
-  readonly next: number;
 };
 
 export type TickTickCompletedTaskOptions = {

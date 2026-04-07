@@ -199,7 +199,9 @@ export class TickTickClient {
       );
     }
 
-    return response.json() as Promise<T>;
+    const text = await response.text();
+    if (!text.trim()) return undefined as unknown as T;
+    return JSON.parse(text) as T;
   }
 
   async #ensureSession(): Promise<void> {

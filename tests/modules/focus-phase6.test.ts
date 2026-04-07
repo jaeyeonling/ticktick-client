@@ -3,11 +3,11 @@ import { createClient } from '../helpers.js';
 
 // ───────── #20 Focus session control ─────────
 describe('FocusModule - session control (#20)', () => {
-  it('start() should POST start op to /api/v2/pomodoros', async () => {
+  it('start() should POST start op to /api/v2/pomodoro', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     await client.focus.start({ duration: 25, focusOnTitle: 'Write tests' });
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/pomodoros');
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/pomodoro');
     expect(body[0].op).toBe('start');
     expect(body[0].duration).toBe(25);
     expect(body[0].focusOnTitle).toBe('Write tests');
@@ -49,27 +49,15 @@ describe('FocusModule - session control (#20)', () => {
   });
 });
 
-// ───────── #21 Heatmap and distribution ─────────
+// ───────── #21 Analytics ─────────
 describe('FocusModule - analytics (#21)', () => {
-  it('getHeatmap() should GET /api/v2/pomodoros/heatmap with date params', async () => {
+  it('getTiming() should GET /api/v2/pomodoros/timing with ms timestamp params', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
-    await client.focus.getHeatmap('2026-01-01', '2026-03-31');
+    await client.focus.getTiming('2026-01-01', '2026-03-31');
     const url = mockFetch.calls[0]![0]!;
-    expect(url).toContain('/api/v2/pomodoros/heatmap');
-    expect(url).toContain('startDate=2026-01-01');
-    expect(url).toContain('endDate=2026-03-31');
-  });
-
-  it('getHourDistribution() should GET /api/v2/pomodoros/hour_distribution', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
-    await client.focus.getHourDistribution('2026-01-01', '2026-03-31');
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/pomodoros/hour_distribution');
-  });
-
-  it('getDistribution() should GET /api/v2/pomodoros/distribution', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
-    await client.focus.getDistribution('2026-01-01', '2026-03-31');
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/pomodoros/distribution');
+    expect(url).toContain('/api/v2/pomodoros/timing');
+    expect(url).toContain('from=');
+    expect(url).toContain('to=');
   });
 });
 
@@ -91,9 +79,9 @@ describe('FocusModule - local state (#22)', () => {
     expect(state.lastPoint).toBe(0);
   });
 
-  it('syncState() should GET current state from server', async () => {
+  it('syncState() should GET current state from /api/v2/timer', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: { status: 'running' } }]);
     await client.focus.syncState();
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/pomodoros/current');
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/timer');
   });
 });

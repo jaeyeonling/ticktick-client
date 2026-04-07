@@ -7,3 +7,6 @@ dist/
 .playwright-mcp/
 test-live.ts
 0
+scripts/investigate-*.ts
+scripts/test-*.ts
+scripts/capture-traffic.ts

@@ -12,11 +12,16 @@ const mockTask: TickTickTask = {
 
 describe('TasksModule', () => {
   describe('list()', () => {
-    it('should return tasks from syncTaskBean', async () => {
+    it('should return tasks array', async () => {
       const { client } = createClient([{ status: 200, body: { syncTaskBean: { update: [mockTask] } } }]);
       const tasks = await client.tasks.list();
       expect(tasks).toHaveLength(1);
       expect(tasks[0]?.title).toBe('Test Task');
+    });
+
+    it('should return empty array if response is empty', async () => {
+      const { client } = createClient([{ status: 200, body: { syncTaskBean: { update: [] } } }]);
+      expect(await client.tasks.list()).toEqual([]);
     });
 
     it('should return empty array if syncTaskBean is missing', async () => {
@@ -24,10 +29,11 @@ describe('TasksModule', () => {
       expect(await client.tasks.list()).toEqual([]);
     });
 
-    it('should call /api/v2/batch/check/0', async () => {
-      const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
+    it('should call GET /api/v3/batch/check/0', async () => {
+      const { client, mockFetch } = createClient([{ status: 200, body: { syncTaskBean: { update: [] } } }]);
       await client.tasks.list();
-      expect(mockFetch.calls[0]![0]).toContain('/api/v2/batch/check/0');
+      expect(mockFetch.calls[0]![0]).toContain('/api/v3/batch/check/0');
+      expect(mockFetch.calls[0]![1]?.method).toBe('GET');
     });
   });
 
@@ -87,29 +93,34 @@ describe('TasksModule', () => {
   });
 
   describe('complete()', () => {
-    it('should POST to /api/v2/batch/task with status 2', async () => {
+    it('should POST to /api/v2/task/{id} with status 2', async () => {
       const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
       await client.tasks.complete('proj123', 'task123');
+      expect(mockFetch.calls[0]![0]).toContain('/api/v2/task/task123');
       const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-      expect(body.update[0].status).toBe(2);
-      expect(body.update[0].id).toBe('task123');
-      expect(body.update[0].projectId).toBe('proj123');
+      expect(body.status).toBe(2);
+      expect(body.id).toBe('task123');
+      expect(body.projectId).toBe('proj123');
     });
 
     it('should include completedTime in ISO format', async () => {
       const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
       await client.tasks.complete('proj123', 'task123');
       const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-      expect(body.update[0].completedTime).toBeDefined();
+      expect(body.completedTime).toBeDefined();
     });
   });
 
   describe('delete()', () => {
-    it('should DELETE /api/v2/project/:projectId/task/:taskId', async () => {
+    it('should POST to /api/v2/task/{id} with status -1', async () => {
       const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
       await client.tasks.delete('proj123', 'task123');
-      expect(mockFetch.calls[0]![0]).toContain('/api/v2/project/proj123/task/task123');
-      expect(mockFetch.calls[0]![1]?.method).toBe('DELETE');
+      expect(mockFetch.calls[0]![0]).toContain('/api/v2/task/task123');
+      expect(mockFetch.calls[0]![1]?.method).toBe('POST');
+      const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
+      expect(body.id).toBe('task123');
+      expect(body.projectId).toBe('proj123');
+      expect(body.status).toBe(-1);
     });
   });
 });

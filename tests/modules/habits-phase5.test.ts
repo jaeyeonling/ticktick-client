@@ -13,20 +13,21 @@ describe('HabitsModule - CRUD (#15)', () => {
     recordEnable: false,
   };
 
-  it('create() should POST add array to /api/v2/batch/habit', async () => {
+  it('create() should POST add array to /api/v2/habits/batch', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     await client.habits.create(draft);
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/batch/habit');
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/habits/batch');
     expect(body.add).toHaveLength(1);
     expect(body.add[0].name).toBe('Exercise');
     expect(body.add[0].id).toMatch(/^[0-9a-f]{24}$/);
   });
 
-  it('update() should POST update array to /api/v2/batch/habit', async () => {
+  it('update() should POST update array to /api/v2/habits/batch', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     await client.habits.update({ id: 'habit123', name: 'Exercise daily' });
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/habits/batch');
     expect(body.update).toHaveLength(1);
     expect(body.update[0].id).toBe('habit123');
     expect(body.update[0].name).toBe('Exercise daily');
@@ -36,6 +37,7 @@ describe('HabitsModule - CRUD (#15)', () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     await client.habits.delete('habit123');
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/habits/batch');
     expect(body.delete).toEqual(['habit123']);
   });
 
@@ -43,6 +45,7 @@ describe('HabitsModule - CRUD (#15)', () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     await client.habits.deleteMany(['h1', 'h2']);
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/habits/batch');
     expect(body.delete).toEqual(['h1', 'h2']);
   });
 });

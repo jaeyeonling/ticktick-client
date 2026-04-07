@@ -46,21 +46,35 @@ export class HabitsModule {
   // ───────── #15 CRUD ─────────
 
   async create(draft: TickTickHabitDraft): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/habit', {
+    await this.client.request('POST', '/api/v2/habits/batch', {
       add: [{ id: generateObjectId(), ...draft }],
+      update: [],
+      delete: [],
     });
   }
 
   async update(params: Partial<TickTickHabitDraft> & { id: string }): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/habit', { update: [params] });
+    await this.client.request('POST', '/api/v2/habits/batch', {
+      add: [],
+      update: [params],
+      delete: [],
+    });
   }
 
   async delete(habitId: string): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/habit', { delete: [habitId] });
+    await this.client.request('POST', '/api/v2/habits/batch', {
+      add: [],
+      update: [],
+      delete: [habitId],
+    });
   }
 
   async deleteMany(habitIds: readonly string[]): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/habit', { delete: habitIds });
+    await this.client.request('POST', '/api/v2/habits/batch', {
+      add: [],
+      update: [],
+      delete: habitIds,
+    });
   }
 
   // ───────── #16 Upsert checkin ─────────
@@ -88,11 +102,11 @@ export class HabitsModule {
     };
 
     if (found) {
-      await this.client.request('POST', '/api/v2/batch/habitCheckin', {
+      await this.client.request('POST', '/api/v2/habitCheckins/batch', {
         update: [{ ...checkin, id: found.id }],
       });
     } else {
-      await this.client.request('POST', '/api/v2/batch/habitCheckin', {
+      await this.client.request('POST', '/api/v2/habitCheckins/batch', {
         add: [{ ...checkin, id: generateObjectId() }],
       });
     }

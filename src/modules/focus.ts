@@ -28,6 +28,10 @@ const DEFAULT_STATE: FocusState = {
   focusOnTitle: null,
 };
 
+function toMs(date: string): number {
+  return new Date(date).getTime();
+}
+
 export class FocusModule {
   #state: FocusState = { ...DEFAULT_STATE };
 
@@ -35,15 +39,16 @@ export class FocusModule {
 
   // ───────── Existing ─────────
 
+  // Params: date strings (YYYY-MM-DD). API expects ms timestamps.
   async getTimeline(startDate: string, endDate: string): Promise<readonly FocusTimeline[]> {
     return this.client.request<readonly FocusTimeline[]>(
       'GET',
-      `/api/v2/pomodoros?startDate=${startDate}&endDate=${endDate}`,
+      `/api/v2/pomodoros?from=${toMs(startDate)}&to=${toMs(endDate)}`,
     );
   }
 
   async getOverview(): Promise<FocusOverview> {
-    return this.client.request<FocusOverview>('GET', '/api/v2/pomodoros/statistics');
+    return this.client.request<FocusOverview>('GET', '/api/v2/pomodoros/statistics/generalForDesktop');
   }
 
   // ───────── #20 Session control ─────────
@@ -51,7 +56,7 @@ export class FocusModule {
   async start(options?: FocusStartOptions): Promise<void> {
     const id = generateObjectId();
     const duration = options?.duration ?? 25;
-    await this.client.request('POST', '/api/v2/pomodoros', [
+    await this.client.request('POST', '/api/v2/pomodoro', [
       {
         id,
         op: 'start',
@@ -87,31 +92,39 @@ export class FocusModule {
   }
 
   async #postOp(op: string): Promise<void> {
-    await this.client.request('POST', '/api/v2/pomodoros', [
+    await this.client.request('POST', '/api/v2/pomodoro', [
       { id: generateObjectId(), op, lastPoint: this.#state.lastPoint },
     ]);
   }
 
   // ───────── #21 Analytics ─────────
 
+  // Params: date strings (YYYY-MM-DD). API expects ms timestamps.
+  async getTiming(startDate: string, endDate: string): Promise<unknown> {
+    return this.client.request(
+      'GET',
+      `/api/v2/pomodoros/timing?from=${toMs(startDate)}&to=${toMs(endDate)}`,
+    );
+  }
+
   async getHeatmap(startDate: string, endDate: string): Promise<unknown> {
     return this.client.request(
       'GET',
-      `/api/v2/pomodoros/heatmap?startDate=${startDate}&endDate=${endDate}`,
+      `/api/v2/pomodoros/statistics/heatmap?from=${toMs(startDate)}&to=${toMs(endDate)}`,
     );
   }
 
   async getHourDistribution(startDate: string, endDate: string): Promise<unknown> {
     return this.client.request(
       'GET',
-      `/api/v2/pomodoros/hour_distribution?startDate=${startDate}&endDate=${endDate}`,
+      `/api/v2/pomodoros/statistics/hourDistribution?from=${toMs(startDate)}&to=${toMs(endDate)}`,
     );
   }
 
   async getDistribution(startDate: string, endDate: string): Promise<unknown> {
     return this.client.request(
       'GET',
-      `/api/v2/pomodoros/distribution?startDate=${startDate}&endDate=${endDate}`,
+      `/api/v2/pomodoros/statistics/distribution?from=${toMs(startDate)}&to=${toMs(endDate)}`,
     );
   }
 
@@ -126,7 +139,7 @@ export class FocusModule {
   }
 
   async syncState(): Promise<FocusState> {
-    const remote = await this.client.request<Partial<FocusState>>('GET', '/api/v2/pomodoros/current');
+    const remote = await this.client.request<Partial<FocusState>>('GET', '/api/v2/timer');
     this.#state = { ...DEFAULT_STATE, ...remote };
     return this.#state;
   }

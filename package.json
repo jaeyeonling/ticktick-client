@@ -1,6 +1,6 @@
 {
   "name": "ticktick-client",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Unofficial TickTick API client for Node.js",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.2",
+    "playwright": "^1.59.1",
     "tsup": "^8.4.0",
     "tsx": "^4.21.0",
     "typedoc": "^0.28.18",

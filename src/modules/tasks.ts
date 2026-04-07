@@ -6,11 +6,10 @@ import type {
   TickTickTaskUpdate,
   TickTickTaskMove,
   TickTickTrashOptions,
-  TickTickTrashResponse,
   TickTickCompletedTaskOptions,
 } from '../types.js';
 
-type SyncResponse = {
+type BatchCheckResponse = {
   readonly syncTaskBean?: {
     readonly update?: readonly TickTickTask[];
   };
@@ -20,7 +19,7 @@ export class TasksModule {
   constructor(private readonly client: TickTickClient) {}
 
   async list(): Promise<readonly TickTickTask[]> {
-    const response = await this.client.request<SyncResponse>('GET', '/api/v2/batch/check/0');
+    const response = await this.client.request<BatchCheckResponse>('GET', '/api/v3/batch/check/0');
     return response.syncTaskBean?.update ?? [];
   }
 
@@ -49,56 +48,87 @@ export class TasksModule {
   }
 
   async complete(projectId: string, taskId: string): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/task', {
-      update: [
-        {
-          id: taskId,
-          projectId,
-          status: 2,
-          completedTime: new Date().toISOString().replace('Z', '+0000'),
-        },
-      ],
+    await this.client.request('POST', `/api/v2/task/${taskId}`, {
+      id: taskId,
+      projectId,
+      status: 2,
+      completedTime: new Date().toISOString().replace('Z', '+0000'),
     });
   }
 
   async delete(projectId: string, taskId: string): Promise<void> {
-    await this.client.request('DELETE', `/api/v2/project/${projectId}/task/${taskId}`);
+    await this.client.request('POST', `/api/v2/task/${taskId}`, { id: taskId, projectId, status: -1 });
   }
 
   // ───────── #3 Batch operations ─────────
 
   async createMany(drafts: readonly TickTickTaskDraft[]): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/task', {
-      add: drafts.map((draft) => ({ id: generateObjectId(), ...draft })),
-    });
+    await Promise.all(
+      drafts.map((draft) =>
+        this.client.request('POST', '/api/v2/task', { id: generateObjectId(), ...draft }),
+      ),
+    );
   }
 
   async updateMany(params: readonly TickTickTaskUpdate[]): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/task', { update: params });
+    await Promise.all(
+      params.map((p) => this.client.request('POST', `/api/v2/task/${p.id}`, p)),
+    );
   }
 
   async deleteMany(items: readonly { taskId: string; projectId: string }[]): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/task', { delete: items });
+    await Promise.all(
+      items.map((item) =>
+        this.client.request('POST', `/api/v2/task/${item.taskId}`, {
+          id: item.taskId,
+          projectId: item.projectId,
+          status: -1,
+        }),
+      ),
+    );
   }
 
   // ───────── #4 Move between projects ─────────
+  // NOTE: TickTick REST API does not support in-place projectId mutation.
+  // move() is implemented as copy-to-dst + delete-from-src.
+  // The returned task will have a new server-assigned id.
 
-  async move(item: TickTickTaskMove): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/taskProject', {
-      add: [],
-      update: [],
-      delete: [],
-      moveProject: [item],
+  async move(item: TickTickTaskMove): Promise<TickTickTask> {
+    const all = await this.list();
+    const task = all.find((t) => t.id === item.taskId);
+    if (!task) throw new Error(`Task ${item.taskId} not found`);
+
+    const newTask = await this.client.request<TickTickTask>('POST', '/api/v2/task', {
+      ...task,
+      id: generateObjectId(),
+      projectId: item.toProjectId,
     });
+    await this.client.request('POST', `/api/v2/task/${item.taskId}`, {
+      id: item.taskId,
+      projectId: item.fromProjectId,
+      status: -1,
+    });
+    return newTask;
   }
 
   async moveMany(items: readonly TickTickTaskMove[]): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/taskProject', {
-      add: [],
-      update: [],
-      delete: [],
-      moveProject: items,
-    });
+    const all = await this.list();
+    await Promise.all(
+      items.map(async (item) => {
+        const task = all.find((t) => t.id === item.taskId);
+        if (!task) throw new Error(`Task ${item.taskId} not found`);
+        await this.client.request<TickTickTask>('POST', '/api/v2/task', {
+          ...task,
+          id: generateObjectId(),
+          projectId: item.toProjectId,
+        });
+        await this.client.request('POST', `/api/v2/task/${item.taskId}`, {
+          id: item.taskId,
+          projectId: item.fromProjectId,
+          status: -1,
+        });
+      }),
+    );
   }
 
   // ───────── #5 Subtask support ─────────
@@ -118,34 +148,34 @@ export class TasksModule {
   // ───────── #7 Pin / Unpin ─────────
 
   async pin(taskId: string, projectId: string, date?: Date): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/task', {
-      update: [{ id: taskId, projectId, pinnedTime: (date ?? new Date()).toISOString() }],
+    await this.client.request('POST', `/api/v2/task/${taskId}`, {
+      id: taskId,
+      projectId,
+      pinnedTime: (date ?? new Date()).toISOString(),
     });
   }
 
   async unpin(taskId: string, projectId: string): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/task', {
-      update: [{ id: taskId, projectId, pinnedTime: null }],
+    await this.client.request('POST', `/api/v2/task/${taskId}`, {
+      id: taskId,
+      projectId,
+      pinnedTime: null,
     });
   }
 
   // ───────── #8 Trash ─────────
 
-  async listTrash(options?: TickTickTrashOptions): Promise<TickTickTrashResponse> {
-    const params = new URLSearchParams();
-    if (options?.limit !== undefined) params.set('limit', String(options.limit));
-    if (options?.type !== undefined) params.set('type', String(options.type));
-    const query = params.toString();
-    return this.client.request<TickTickTrashResponse>(
+  async listTrash(options: TickTickTrashOptions & { projectId: string }): Promise<readonly TickTickTask[]> {
+    const params = new URLSearchParams({ status: '-1' });
+    if (options.limit !== undefined) params.set('limit', String(options.limit));
+    return this.client.request<readonly TickTickTask[]>(
       'GET',
-      `/api/v2/project/all/trash${query ? `?${query}` : ''}`,
+      `/api/v2/project/${options.projectId}/tasks?${params.toString()}`,
     );
   }
 
   async restore(taskId: string, projectId: string): Promise<void> {
-    await this.client.request('POST', '/api/v2/batch/task', {
-      update: [{ id: taskId, projectId }],
-    });
+    await this.client.request('POST', `/api/v2/task/${taskId}`, { id: taskId, projectId, status: 0 });
   }
 
   // ───────── #9 Async iterator for completed tasks ─────────
@@ -164,7 +194,12 @@ export class TasksModule {
       if (page.length === 0) break;
       yield page;
       const last = page[page.length - 1];
-      params.set('from', last?.completedTime ?? '');
+      // Normalize cursor: "2026-04-02T22:42:07.000+0000" → "2026-04-02 22:42:07"
+      const cursor = (last?.completedTime ?? '')
+        .replace(/\.\d+\+\d+$/, '')   // strip .000+0000
+        .replace(/\.\d+Z$/, '')        // strip .000Z
+        .replace('T', ' ');
+      params.set('from', cursor);
     }
   }
 }

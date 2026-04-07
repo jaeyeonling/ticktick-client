@@ -3,53 +3,109 @@ import { createClient } from '../helpers.js';
 
 // ───────── #3 Batch operations ─────────
 describe('TasksModule - batch operations (#3)', () => {
-  it('createMany() should POST add array to /api/v2/batch/task', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
+  it('createMany() should POST each task individually to /api/v2/task', async () => {
+    const { client, mockFetch } = createClient([
+      { status: 200, body: {} },
+      { status: 200, body: {} },
+    ]);
     await client.tasks.createMany([{ title: 'A' }, { title: 'B' }]);
-    const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/batch/task');
-    expect(body.add).toHaveLength(2);
-    expect(body.add[0].title).toBe('A');
-    expect(body.add[0].id).toMatch(/^[0-9a-f]{24}$/);
+    expect(mockFetch.calls).toHaveLength(2);
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/task');
+    const body0 = JSON.parse(mockFetch.calls[0]![1]?.body as string);
+    expect(body0.title).toBe('A');
+    expect(body0.id).toMatch(/^[0-9a-f]{24}$/);
   });
 
-  it('updateMany() should POST update array to /api/v2/batch/task', async () => {
+  it('updateMany() should POST each task individually to /api/v2/task/{id}', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     await client.tasks.updateMany([{ id: 't1', projectId: 'p1', title: 'Updated' }]);
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/task/t1');
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(body.update).toHaveLength(1);
-    expect(body.update[0].id).toBe('t1');
+    expect(body.id).toBe('t1');
   });
 
-  it('deleteMany() should POST delete array to /api/v2/batch/task', async () => {
+  it('deleteMany() should POST status:-1 to each /api/v2/task/{id}', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     await client.tasks.deleteMany([{ taskId: 't1', projectId: 'p1' }]);
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/task/t1');
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(body.delete).toHaveLength(1);
-    expect(body.delete[0].taskId).toBe('t1');
-    expect(body.delete[0].projectId).toBe('p1');
+    expect(body.id).toBe('t1');
+    expect(body.projectId).toBe('p1');
+    expect(body.status).toBe(-1);
   });
 });
 
 // ───────── #4 Move between projects ─────────
+// NOTE: TickTick REST API does not support in-place projectId mutation.
+// move() is implemented as: list() → create in dst → delete from src.
 describe('TasksModule - move (#4)', () => {
-  it('move() should POST to /api/v2/batch/taskProject', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
-    await client.tasks.move({ taskId: 't1', fromProjectId: 'p1', toProjectId: 'p2' });
-    const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/batch/taskProject');
-    expect(body.moveProject).toHaveLength(1);
-    expect(body.moveProject[0]).toEqual({ taskId: 't1', fromProjectId: 'p1', toProjectId: 'p2' });
+  it('move() should list, create in dst, then delete from src', async () => {
+    const existingTask = { id: 't1', projectId: 'p1', title: 'Task 1', status: 0 };
+    const newTask = { id: 'new-id', projectId: 'p2', title: 'Task 1', status: 0 };
+    const { client, mockFetch } = createClient([
+      { status: 200, body: { syncTaskBean: { update: [existingTask] } } }, // list()
+      { status: 200, body: newTask },                                       // create in dst
+      { status: 200, body: {} },                                           // delete from src
+    ]);
+    const result = await client.tasks.move({ taskId: 't1', fromProjectId: 'p1', toProjectId: 'p2' });
+
+    // Step 1: list via batch/check
+    expect(mockFetch.calls[0]![0]).toContain('/api/v3/batch/check/0');
+
+    // Step 2: create in dst with new id and toProjectId
+    expect(mockFetch.calls[1]![0]).toContain('/api/v2/task');
+    const createBody = JSON.parse(mockFetch.calls[1]![1]?.body as string);
+    expect(createBody.projectId).toBe('p2');
+    expect(createBody.id).not.toBe('t1');
+    expect(createBody.id).toMatch(/^[0-9a-f]{24}$/);
+
+    // Step 3: delete old task from src
+    expect(mockFetch.calls[2]![0]).toContain('/api/v2/task/t1');
+    const deleteBody = JSON.parse(mockFetch.calls[2]![1]?.body as string);
+    expect(deleteBody.status).toBe(-1);
+    expect(deleteBody.projectId).toBe('p1');
+
+    expect(result).toEqual(newTask);
   });
 
-  it('moveMany() should include all items in moveProject array', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
+  it('move() should throw if task not found in list', async () => {
+    const { client } = createClient([
+      { status: 200, body: { syncTaskBean: { update: [] } } },
+    ]);
+    await expect(client.tasks.move({ taskId: 'missing', fromProjectId: 'p1', toProjectId: 'p2' }))
+      .rejects.toThrow('Task missing not found');
+  });
+
+  it('moveMany() should use single list() then copy+delete each task', async () => {
+    const task1 = { id: 't1', projectId: 'p1', title: 'T1', status: 0 };
+    const task2 = { id: 't2', projectId: 'p1', title: 'T2', status: 0 };
+    const { client, mockFetch } = createClient([
+      // shared list() call
+      { status: 200, body: { syncTaskBean: { update: [task1, task2] } } },
+      // t1 create + t2 create (parallel — order may vary)
+      { status: 200, body: { id: 'new1', projectId: 'p2', title: 'T1', status: 0 } },
+      { status: 200, body: { id: 'new2', projectId: 'p3', title: 'T2', status: 0 } },
+      // t1 delete + t2 delete (parallel — order may vary)
+      { status: 200, body: {} },
+      { status: 200, body: {} },
+    ]);
     await client.tasks.moveMany([
       { taskId: 't1', fromProjectId: 'p1', toProjectId: 'p2' },
       { taskId: 't2', fromProjectId: 'p1', toProjectId: 'p3' },
     ]);
-    const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(body.moveProject).toHaveLength(2);
+    // 1 list + 2 create + 2 delete = 5 calls total
+    expect(mockFetch.calls).toHaveLength(5);
+    expect(mockFetch.calls[0]![0]).toContain('/api/v3/batch/check/0');
+
+    const bodies = mockFetch.calls.slice(1).map(c => JSON.parse(c[1]?.body as string));
+    // both creates: new IDs with toProjectId
+    const creates = bodies.filter(b => b.id !== 't1' && b.id !== 't2');
+    expect(creates.some(b => b.projectId === 'p2')).toBe(true);
+    expect(creates.some(b => b.projectId === 'p3')).toBe(true);
+    // both deletes: original IDs with status -1
+    const deletes = bodies.filter(b => b.status === -1);
+    expect(deletes.some(b => b.id === 't1')).toBe(true);
+    expect(deletes.some(b => b.id === 't2')).toBe(true);
   });
 });
 
@@ -93,53 +149,58 @@ describe('TasksModule - recurrence (#6)', () => {
 
 // ───────── #7 Pin / Unpin ─────────
 describe('TasksModule - pin/unpin (#7)', () => {
-  it('pin() should send pinnedTime as ISO string', async () => {
+  it('pin() should POST to /api/v2/task/{id} with pinnedTime', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     const date = new Date('2026-04-07T00:00:00Z');
     await client.tasks.pin('t1', 'p1', date);
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/task/t1');
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(body.update[0].id).toBe('t1');
-    expect(body.update[0].pinnedTime).toBeDefined();
+    expect(body.id).toBe('t1');
+    expect(body.pinnedTime).toBeDefined();
   });
 
   it('pin() without date should use current time', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     await client.tasks.pin('t1', 'p1');
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(body.update[0].pinnedTime).toBeDefined();
+    expect(body.pinnedTime).toBeDefined();
   });
 
-  it('unpin() should send pinnedTime as null', async () => {
+  it('unpin() should POST to /api/v2/task/{id} with pinnedTime null', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     await client.tasks.unpin('t1', 'p1');
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/task/t1');
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(body.update[0].id).toBe('t1');
-    expect(body.update[0].pinnedTime).toBeNull();
+    expect(body.id).toBe('t1');
+    expect(body.pinnedTime).toBeNull();
   });
 });
 
 // ───────── #8 Trash ─────────
 describe('TasksModule - trash (#8)', () => {
-  it('listTrash() should GET /api/v2/project/all/trash', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: { tasks: [], next: 0 } }]);
-    await client.tasks.listTrash();
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/project/all/trash');
+  it('listTrash() should GET /api/v2/project/{id}/tasks with status=-1', async () => {
+    const { client, mockFetch } = createClient([{ status: 200, body: [] }]);
+    await client.tasks.listTrash({ projectId: 'p1' });
+    const url = mockFetch.calls[0]![0]!;
+    expect(url).toContain('/api/v2/project/p1/tasks');
+    expect(url).toContain('status=-1');
     expect(mockFetch.calls[0]![1]?.method).toBe('GET');
   });
 
   it('listTrash() with limit should include limit in URL', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: { tasks: [], next: 0 } }]);
-    await client.tasks.listTrash({ limit: 20 });
+    const { client, mockFetch } = createClient([{ status: 200, body: [] }]);
+    await client.tasks.listTrash({ projectId: 'p1', limit: 20 });
     expect(mockFetch.calls[0]![0]).toContain('limit=20');
   });
 
-  it('restore() should POST to /api/v2/batch/task', async () => {
+  it('restore() should POST to /api/v2/task/{id} with status 0', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
     await client.tasks.restore('t1', 'p1');
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/batch/task');
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/task/t1');
     const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(body.update[0].id).toBe('t1');
-    expect(body.update[0].projectId).toBe('p1');
+    expect(body.id).toBe('t1');
+    expect(body.projectId).toBe('p1');
+    expect(body.status).toBe(0);
   });
 });
 
