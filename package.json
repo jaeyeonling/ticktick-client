@@ -36,6 +36,14 @@
     "unofficial"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jaeyeonling/ticktick-client.git"
+  },
+  "homepage": "https://github.com/jaeyeonling/ticktick-client#readme",
+  "bugs": {
+    "url": "https://github.com/jaeyeonling/ticktick-client/issues"
+  },
   "devDependencies": {
     "@types/node": "^25.5.2",
     "tsup": "^8.4.0",

@@ -1,5 +1,9 @@
 # ticktick-client
 
+[![npm version](https://img.shields.io/npm/v/ticktick-client)](https://www.npmjs.com/package/ticktick-client)
+[![CI](https://github.com/jaeyeonling/ticktick-client/actions/workflows/ci.yml/badge.svg)](https://github.com/jaeyeonling/ticktick-client/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Unofficial TickTick API client for Node.js/TypeScript.
 
 > **Note**: This is an unofficial library using TickTick's private web API. It may break if TickTick changes their API. Use at your own risk.
