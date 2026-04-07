@@ -1,3 +1,0 @@
-[     846ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://ticktick.com/webapp/#p/today/statistics:0
-[     864ms] [INFO] check user changed {oldUserId: , userId: 130689001} @ https://d107mjio2rjf74.cloudfront.net/web/static/build/app/vendor.ap-2f4c11147d402de722ed.js:1
-[    1018ms] [LOG] Service worker registration succeeded @ https://d107mjio2rjf74.cloudfront.net/web/static/build/app/vendor.ap-2f4c11147d402de722ed.js:1

@@ -1,6 +1,0 @@
-[   15672ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://api.ticktick.com/api/v2/statistics/score:0
-[   15996ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://api.ticktick.com/api/v2/statistics/ranking:0
-[   16318ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://api.ticktick.com/api/v2/statistics/tasks?startDate=2026-01-01&endDate=2026-04-07:0
-[   16647ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://api.ticktick.com/api/v2/user/statistics:0
-[   16959ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://api.ticktick.com/api/v2/statistics/summary:0
-[   17275ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://api.ticktick.com/api/v2/statistics/overview:0

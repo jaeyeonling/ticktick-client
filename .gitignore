@@ -3,3 +3,7 @@ dist/
 *.session.json
 .env
 .env.local
+.omc/
+.playwright-mcp/
+test-live.ts
+0
