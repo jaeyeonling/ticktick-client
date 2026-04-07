@@ -61,6 +61,24 @@ export type TickTickTaskMove = {
   readonly toProjectId: string;
 };
 
+/**
+ * Result of a task move operation.
+ *
+ * **Important:** The TickTick REST API does not support in-place project moves.
+ * Moves are implemented as copy-to-destination + delete-from-source, which means
+ * the task receives a new server-assigned ID. Use `previousId` to update any
+ * references to the old task.
+ *
+ * Verified 2026-04-07:
+ * - `POST /api/v3/batch/taskProject` → 404 (does not exist)
+ * - `POST /api/v2/task/{id}` with new projectId → 200 but projectId unchanged
+ * - Web app uses WebSocket for native moves (not available via REST)
+ */
+export type TickTickMoveResult = {
+  readonly task: TickTickTask;
+  readonly previousId: string;
+};
+
 export type TickTickTrashOptions = {
   readonly projectId: string;
   readonly limit?: number;

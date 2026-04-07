@@ -10,3 +10,4 @@ test-live.ts
 scripts/investigate-*.ts
 scripts/test-*.ts
 scripts/capture-traffic.ts
+captured-api-spec.json

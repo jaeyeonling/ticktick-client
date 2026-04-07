@@ -37,6 +37,8 @@ export type {
   TickTickHabitCheckin,
   TickTickCheckinInput,
   TickTickRanking,
+  TickTickTaskMove,
+  TickTickMoveResult,
   TickTickCountdown,
   TickTickCountdownDraft,
   TickTickCountdownType,

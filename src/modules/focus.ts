@@ -28,8 +28,12 @@ const DEFAULT_STATE: FocusState = {
   focusOnTitle: null,
 };
 
-function toMs(date: string): number {
+function toStartMs(date: string): number {
   return new Date(date).getTime();
+}
+
+function toEndMs(date: string): number {
+  return new Date(date).getTime() + 24 * 60 * 60 * 1000 - 1;
 }
 
 export class FocusModule {
@@ -43,7 +47,7 @@ export class FocusModule {
   async getTimeline(startDate: string, endDate: string): Promise<readonly FocusTimeline[]> {
     return this.client.request<readonly FocusTimeline[]>(
       'GET',
-      `/api/v2/pomodoros?from=${toMs(startDate)}&to=${toMs(endDate)}`,
+      `/api/v2/pomodoros?from=${toStartMs(startDate)}&to=${toEndMs(endDate)}`,
     );
   }
 
@@ -103,28 +107,60 @@ export class FocusModule {
   async getTiming(startDate: string, endDate: string): Promise<unknown> {
     return this.client.request(
       'GET',
-      `/api/v2/pomodoros/timing?from=${toMs(startDate)}&to=${toMs(endDate)}`,
+      `/api/v2/pomodoros/timing?from=${toStartMs(startDate)}&to=${toEndMs(endDate)}`,
     );
   }
 
+  /**
+   * Returns focus heatmap data for the given date range.
+   *
+   * **⚠️ Server bug (confirmed 2026-04-07):** This endpoint returns HTTP 500
+   * regardless of parameter format (ms timestamps, seconds, ISO dates, YYYYMMDD,
+   * no params) or account data. Tested with an account that has 5 completed
+   * pomodoros. The endpoint exists (not 404) but is broken server-side.
+   * Alternative v3 endpoints do not exist (404).
+   *
+   * @see https://github.com/jaeyeonling/ticktick-client/issues/31
+   * @throws {TickTickApiError} Always throws with status 500 due to server bug
+   */
   async getHeatmap(startDate: string, endDate: string): Promise<unknown> {
     return this.client.request(
       'GET',
-      `/api/v2/pomodoros/statistics/heatmap?from=${toMs(startDate)}&to=${toMs(endDate)}`,
+      `/api/v2/pomodoros/statistics/heatmap?from=${toStartMs(startDate)}&to=${toEndMs(endDate)}`,
     );
   }
 
+  /**
+   * Returns focus hour-distribution data for the given date range.
+   *
+   * **⚠️ Server bug (confirmed 2026-04-07):** This endpoint returns HTTP 500
+   * regardless of parameter format or account data. See {@link getHeatmap} for
+   * full investigation details.
+   *
+   * @see https://github.com/jaeyeonling/ticktick-client/issues/31
+   * @throws {TickTickApiError} Always throws with status 500 due to server bug
+   */
   async getHourDistribution(startDate: string, endDate: string): Promise<unknown> {
     return this.client.request(
       'GET',
-      `/api/v2/pomodoros/statistics/hourDistribution?from=${toMs(startDate)}&to=${toMs(endDate)}`,
+      `/api/v2/pomodoros/statistics/hourDistribution?from=${toStartMs(startDate)}&to=${toEndMs(endDate)}`,
     );
   }
 
+  /**
+   * Returns focus distribution data for the given date range.
+   *
+   * **⚠️ Server bug (confirmed 2026-04-07):** This endpoint returns HTTP 500
+   * regardless of parameter format or account data. See {@link getHeatmap} for
+   * full investigation details.
+   *
+   * @see https://github.com/jaeyeonling/ticktick-client/issues/31
+   * @throws {TickTickApiError} Always throws with status 500 due to server bug
+   */
   async getDistribution(startDate: string, endDate: string): Promise<unknown> {
     return this.client.request(
       'GET',
-      `/api/v2/pomodoros/statistics/distribution?from=${toMs(startDate)}&to=${toMs(endDate)}`,
+      `/api/v2/pomodoros/statistics/distribution?from=${toStartMs(startDate)}&to=${toEndMs(endDate)}`,
     );
   }
 

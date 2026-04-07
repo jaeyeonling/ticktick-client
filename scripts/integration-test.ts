@@ -207,17 +207,23 @@ async function testTasks() {
     moveDstId = p2.id;
 
     const taskToMove = await client.tasks.create({ title: `${TEST_PREFIX} move 태스크`, projectId: moveSrcId });
-    const moved = await client.tasks.move({ taskId: taskToMove.id, fromProjectId: moveSrcId, toProjectId: moveDstId });
-    ok(`move() → 새 id: ${moved.id}, projectId: ${moved.projectId}`);
+    const result = await client.tasks.move({ taskId: taskToMove.id, fromProjectId: moveSrcId, toProjectId: moveDstId });
+    if (result.previousId !== taskToMove.id) throw new Error(`previousId mismatch: ${result.previousId} !== ${taskToMove.id}`);
+    if (result.task.id === taskToMove.id) throw new Error('move() should return a new task ID (copy+delete)');
+    if (result.task.projectId !== moveDstId) throw new Error(`projectId mismatch: ${result.task.projectId} !== ${moveDstId}`);
+    ok(`move() → previousId: ${result.previousId}, newId: ${result.task.id}, projectId: ${result.task.projectId}`);
 
-    // moveMany
+    // moveMany — verify ID mapping
     const t1 = await client.tasks.create({ title: `${TEST_PREFIX} moveMany-A`, projectId: moveSrcId });
     const t2 = await client.tasks.create({ title: `${TEST_PREFIX} moveMany-B`, projectId: moveSrcId });
-    await client.tasks.moveMany([
+    const moveResults = await client.tasks.moveMany([
       { taskId: t1.id, fromProjectId: moveSrcId, toProjectId: moveDstId },
       { taskId: t2.id, fromProjectId: moveSrcId, toProjectId: moveDstId },
     ]);
-    ok('moveMany() → 2개 이동 완료');
+    if (moveResults.length !== 2) throw new Error(`moveMany returned ${moveResults.length} results, expected 2`);
+    if (moveResults[0]!.previousId !== t1.id) throw new Error('moveMany previousId[0] mismatch');
+    if (moveResults[1]!.previousId !== t2.id) throw new Error('moveMany previousId[1] mismatch');
+    ok(`moveMany() → 2개 이동, ID 매핑: [${moveResults.map(r => `${r.previousId}→${r.task.id}`).join(', ')}]`);
   } catch (e) {
     fail('move/moveMany()', e);
   } finally {
@@ -244,26 +250,40 @@ async function testTasks() {
   } catch (e) { fail('pin/unpin()', e); }
 
   // listTrash / restore
-  // 테스트용 태스크를 삭제해서 휴지통에 넣은 후 확인
+  // Verified 2026-04-07: status=-1 filter is ignored by the API.
+  // The endpoint returns active tasks, not deleted ones. See #33.
   try {
     const trashSrc = await client.projects.create({ name: `${TEST_PREFIX} trash-src` });
     const trashTask = await client.tasks.create({ title: `${TEST_PREFIX} trash 테스트`, projectId: trashSrc.id });
+
+    // listTrash before delete — should return the active task (status filter ignored)
+    const beforeDelete = await client.tasks.listTrash({ projectId: trashSrc.id, limit: 5 });
+    ok(`listTrash() → API 호출 성공, ${beforeDelete.length}개 (status 필터 무시됨 — #33 확인)`);
+
+    // delete, then verify the deleted task disappears from results
     await client.tasks.delete(trashSrc.id, trashTask.id);
-
-    const trash = await client.tasks.listTrash({ projectId: trashSrc.id, limit: 5 });
-    ok(`listTrash() → ${trash.length}개`);
-
-    if (trash.length > 0) {
-      const first = trash[0]!;
-      await client.tasks.restore(first.id, first.projectId);
-      ok('restore()');
-      await client.tasks.delete(first.projectId, first.id);
+    await new Promise((r) => setTimeout(r, 1000));
+    const afterDelete = await client.tasks.listTrash({ projectId: trashSrc.id, limit: 5 });
+    const deletedStillVisible = afterDelete.some((t) => t.id === trashTask.id);
+    if (!deletedStillVisible) {
+      ok('listTrash() 삭제 후 → 삭제된 태스크 미포함 (REST API 한계 확인)');
     } else {
-      skip('restore()', '휴지통이 비어 있음');
+      ok('listTrash() 삭제 후 → 삭제된 태스크가 여전히 보임');
     }
+
+    // restore — verify it works when we know the task ID
+    await client.tasks.restore(trashTask.id, trashSrc.id);
+    const afterRestore = await client.tasks.list();
+    const restored = afterRestore.find((t) => t.id === trashTask.id);
+    if (restored && restored.status === 0) {
+      ok(`restore() → 태스크 복원 성공 (status: ${restored.status})`);
+    } else {
+      ok('restore() → API 호출 성공 (복원 상태 확인 불가)');
+    }
+    await client.tasks.delete(trashSrc.id, trashTask.id);
     await client.projects.delete(trashSrc.id).catch(() => null);
   } catch (e) {
-    skip('listTrash()', `API 미지원 (${e instanceof Error ? e.message.slice(0, 40) : e})`);
+    fail('listTrash/restore()', e);
   }
 }
 
@@ -408,34 +428,74 @@ async function testFocus() {
     ok('resetState()');
   } catch (e) { fail('resetState()', e); }
 
-  // analytics (데이터 없으면 500 가능 — skip으로 처리)
+  // analytics — getTiming works normally
   try {
     await client.focus.getTiming(today, today);
     ok('getTiming()');
-  } catch (e) { skip('getTiming()', `데이터 없음 또는 미지원`); }
+  } catch (e) { fail('getTiming()', e); }
 
-  try {
-    await client.focus.getHeatmap(today, today);
-    ok('getHeatmap()');
-  } catch (e) { skip('getHeatmap()', `데이터 없음 또는 미지원`); }
+  // analytics — heatmap/hourDistribution/distribution: confirmed server bug (always 500)
+  // Verified 2026-04-07: all param formats (ms, sec, ISO, YYYYMMDD, no params) return 500.
+  // See: https://github.com/jaeyeonling/ticktick-client/issues/31
+  for (const [name, fn] of [
+    ['getHeatmap', () => client.focus.getHeatmap(today, today)] as const,
+    ['getHourDistribution', () => client.focus.getHourDistribution(today, today)] as const,
+    ['getDistribution', () => client.focus.getDistribution(today, today)] as const,
+  ]) {
+    try {
+      await fn();
+      // 만약 성공하면 서버가 수정된 것 — 이슈 업데이트 필요
+      ok(`${name}() — 서버 버그 수정됨! 이슈 #31 재확인 필요`);
+    } catch (e) {
+      const status = (e as { status?: number }).status;
+      if (status === 500) {
+        ok(`${name}() — 예상대로 500 (서버 버그 확인됨)`);
+      } else {
+        fail(`${name}() — 예상치 못한 에러`, e);
+      }
+    }
+  }
 
-  try {
-    await client.focus.getHourDistribution(today, today);
-    ok('getHourDistribution()');
-  } catch (e) { skip('getHourDistribution()', `데이터 없음 또는 미지원`); }
-
-  try {
-    await client.focus.getDistribution(today, today);
-    ok('getDistribution()');
-  } catch (e) { skip('getDistribution()', `데이터 없음 또는 미지원`); }
-
-  // session control: start → finish / stop
+  // session control: start → stop
   try {
     await client.focus.start({ duration: 25 });
     ok('start()');
     await client.focus.stop();
     ok('stop()');
   } catch (e) { fail('start/stop()', e); }
+
+  // session control: start → pause → resume → finish (full lifecycle)
+  // Verified 2026-04-07: all operations return 200 against real API.
+  // GET /api/v2/timer returns [] (server does not track real-time timer state).
+  try {
+    client.focus.resetState(); // clean local state before test
+
+    await client.focus.start({ duration: 25 });
+    const startState = client.focus.getState();
+    if (startState.status !== 'running') throw new Error(`After start: expected running, got ${startState.status}`);
+    if (!startState.focusId) throw new Error('After start: focusId should be set');
+    ok(`start() → API 200, state: running, focusId: ${startState.focusId}`);
+
+    await client.focus.pause();
+    const pausedState = client.focus.getState();
+    if (pausedState.status !== 'paused') throw new Error(`After pause: expected paused, got ${pausedState.status}`);
+    ok('pause() → API 200, state: paused');
+
+    await client.focus.resume();
+    const resumedState = client.focus.getState();
+    if (resumedState.status !== 'running') throw new Error(`After resume: expected running, got ${resumedState.status}`);
+    ok('resume() → API 200, state: running');
+
+    await client.focus.finish();
+    const finishedState = client.focus.getState();
+    if (finishedState.status !== 'idle') throw new Error(`After finish: expected idle, got ${finishedState.status}`);
+    if (finishedState.pomoCount !== 1) throw new Error(`After finish: expected pomoCount=1, got ${finishedState.pomoCount}`);
+    ok(`finish() → API 200, state: idle, pomoCount: ${finishedState.pomoCount}`);
+
+    // Verify syncState returns (server does not track timer, so expect defaults)
+    const synced = await client.focus.syncState();
+    ok(`syncState() after finish → lastPoint: ${synced.lastPoint}`);
+  } catch (e) { fail('start/pause/resume/finish()', e); }
 }
 
 // ───────── Statistics ─────────

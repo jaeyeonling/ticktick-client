@@ -2,6 +2,82 @@ import { describe, it, expect } from 'vitest';
 import { createClient } from '../helpers.js';
 
 describe('FocusModule', () => {
+  describe('pause()', () => {
+    it('should POST /api/v2/pomodoro with op: pause', async () => {
+      const { client, mockFetch } = createClient([
+        { status: 200, body: {} },
+        { status: 200, body: {} },
+      ]);
+      await client.focus.start({ duration: 25 });
+      await client.focus.pause();
+      const body = JSON.parse(mockFetch.calls[1]![1]?.body as string);
+      expect(mockFetch.calls[1]![0]).toContain('/api/v2/pomodoro');
+      expect(body[0].op).toBe('pause');
+    });
+
+    it('should update state to paused', async () => {
+      const { client } = createClient([
+        { status: 200, body: {} },
+        { status: 200, body: {} },
+      ]);
+      await client.focus.start({ duration: 25 });
+      await client.focus.pause();
+      expect(client.focus.getState().status).toBe('paused');
+    });
+  });
+
+  describe('resume()', () => {
+    it('should POST /api/v2/pomodoro with op: continue', async () => {
+      const { client, mockFetch } = createClient([
+        { status: 200, body: {} },
+        { status: 200, body: {} },
+        { status: 200, body: {} },
+      ]);
+      await client.focus.start({ duration: 25 });
+      await client.focus.pause();
+      await client.focus.resume();
+      const body = JSON.parse(mockFetch.calls[2]![1]?.body as string);
+      expect(body[0].op).toBe('continue');
+    });
+
+    it('should update state to running', async () => {
+      const { client } = createClient([
+        { status: 200, body: {} },
+        { status: 200, body: {} },
+        { status: 200, body: {} },
+      ]);
+      await client.focus.start({ duration: 25 });
+      await client.focus.pause();
+      await client.focus.resume();
+      expect(client.focus.getState().status).toBe('running');
+    });
+  });
+
+  describe('finish()', () => {
+    it('should POST /api/v2/pomodoro with op: finish', async () => {
+      const { client, mockFetch } = createClient([
+        { status: 200, body: {} },
+        { status: 200, body: {} },
+      ]);
+      await client.focus.start({ duration: 25 });
+      await client.focus.finish();
+      const body = JSON.parse(mockFetch.calls[1]![1]?.body as string);
+      expect(body[0].op).toBe('finish');
+    });
+
+    it('should update state to idle and increment pomoCount', async () => {
+      const { client } = createClient([
+        { status: 200, body: {} },
+        { status: 200, body: {} },
+      ]);
+      await client.focus.start({ duration: 25 });
+      await client.focus.finish();
+      const state = client.focus.getState();
+      expect(state.status).toBe('idle');
+      expect(state.pomoCount).toBe(1);
+    });
+  });
+
   describe('getTimeline()', () => {
     it('should GET /api/v2/pomodoros with ms timestamp params', async () => {
       const { client, mockFetch } = createClient([{ status: 200, body: [] }]);

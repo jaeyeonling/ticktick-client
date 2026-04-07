@@ -65,7 +65,7 @@ describe('TasksModule - move (#4)', () => {
     expect(deleteBody.status).toBe(-1);
     expect(deleteBody.projectId).toBe('p1');
 
-    expect(result).toEqual(newTask);
+    expect(result).toEqual({ task: newTask, previousId: 't1' });
   });
 
   it('move() should throw if task not found in list', async () => {
@@ -89,10 +89,13 @@ describe('TasksModule - move (#4)', () => {
       { status: 200, body: {} },
       { status: 200, body: {} },
     ]);
-    await client.tasks.moveMany([
+    const results = await client.tasks.moveMany([
       { taskId: 't1', fromProjectId: 'p1', toProjectId: 'p2' },
       { taskId: 't2', fromProjectId: 'p1', toProjectId: 'p3' },
     ]);
+    expect(results).toHaveLength(2);
+    expect(results[0]!.previousId).toBe('t1');
+    expect(results[1]!.previousId).toBe('t2');
     // 1 list + 2 create + 2 delete = 5 calls total
     expect(mockFetch.calls).toHaveLength(5);
     expect(mockFetch.calls[0]![0]).toContain('/api/v3/batch/check/0');
