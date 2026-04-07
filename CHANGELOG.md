@@ -5,21 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-04-07
 
 ### Added
 
 - `CountdownsModule` — list, create, update, delete countdowns (#25)
-- `StatisticsModule` — getRanking, getTaskStats with date range (#23, #24)
-- `UserModule` — getProfile (#18)
-- `FocusModule` — start, pause, resume, finish, stop, getHeatmap, getHourDistribution, getDistribution, getState (#20, #21, #22)
-- `HabitsModule` — create, update, delete, upsertCheckin, getWeekStats (#15, #16, #17)
-- `TagsModule` — create, update, delete, rename, merge (#12, #13, #14)
-- `ProjectsModule` — create, update, delete, listColumns (#10, #11)
-- `TasksModule` — batch ops, move, subtask, pin/unpin, RRULE repeat, trash, iterateCompleted (#3–#9)
-- Semantic helpers: parseTaskPriority, formatTaskPriority, parseTaskStatus, formatTaskStatus, etc.
+- `StatisticsModule` — getRanking, listCompleted with date range (#23, #24)
+- `UserModule` — getProfile, getStatus (#18)
+- `FocusModule` — start, pause, resume, finish, stop, getTimeline, getOverview, getTiming, getState, syncState (#20, #21, #22)
+- `HabitsModule` — create, update, delete, upsertCheckin, getCheckins, getWeekStats (#15, #16, #17)
+- `TagsModule` — create, createMany, update, delete, deleteMany, rename, merge (#12, #13, #14)
+- `ProjectsModule` — create, update, delete, deleteMany, listColumns (#10, #11)
+- `TasksModule` — batch create/update/delete, move with `TickTickMoveResult`, subtask, pin/unpin, RRULE repeat, trash, iterateCompleted (#3–#9)
+- Semantic helpers: parseTaskPriority, formatTaskPriority, parseTaskStatus, formatTaskStatus, parseHabitStatus, formatHabitStatus, parseCheckinStatus, formatCheckinStatus
 - `MemorySessionStore` and `FileSessionStore` for session persistence
 - Auto re-authentication on 401/403 responses
+- Playwright-based API traffic capture script for endpoint verification
+- Comprehensive README with feature coverage table and known limitations
+
+### Fixed
+
+- Focus analytics endpoints (heatmap, hourDistribution, distribution) documented as confirmed server-side 500 (#31)
+- Task move returns `TickTickMoveResult` with `previousId` for ID tracking (#32)
+- listTrash documented as non-functional — server ignores status filter (#33)
+- Focus pause/resume/finish verified against real API with full lifecycle test (#34)
 
 ## [0.1.0] - 2026-04-07
 
