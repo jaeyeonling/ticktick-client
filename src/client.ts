@@ -9,6 +9,8 @@ import { TagsModule } from './modules/tags.js';
 import { HabitsModule } from './modules/habits.js';
 import { FocusModule } from './modules/focus.js';
 import { StatisticsModule } from './modules/statistics.js';
+import { UserModule } from './modules/user.js';
+import { CountdownsModule } from './modules/countdowns.js';
 
 // ───────── Types ─────────
 
@@ -53,6 +55,8 @@ export class TickTickClient {
   readonly habits: HabitsModule;
   readonly focus: FocusModule;
   readonly statistics: StatisticsModule;
+  readonly user: UserModule;
+  readonly countdowns: CountdownsModule;
 
   readonly #fetchFn: typeof globalThis.fetch;
   readonly #baseUrl: string;
@@ -80,6 +84,8 @@ export class TickTickClient {
     this.habits = new HabitsModule(this);
     this.focus = new FocusModule(this);
     this.statistics = new StatisticsModule(this);
+    this.user = new UserModule(this);
+    this.countdowns = new CountdownsModule(this);
   }
 
   // ───────── Auth ─────────

@@ -6,8 +6,20 @@ export type { TickTickSessionStore } from './session-store.js';
 
 export { TickTickError, TickTickAuthError, TickTickApiError } from './errors.js';
 
+export {
+  parseTaskPriority,
+  formatTaskPriority,
+  parseTaskStatus,
+  formatTaskStatus,
+  parseHabitStatus,
+  formatHabitStatus,
+  parseCheckinStatus,
+  formatCheckinStatus,
+} from './semantic.js';
+
 export type {
   TickTickSession,
+  TickTickUserProfile,
   TickTickTask,
   TickTickTaskItem,
   TickTickTaskDraft,

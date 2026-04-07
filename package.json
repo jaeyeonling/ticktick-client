@@ -26,7 +26,8 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "docs:build": "typedoc"
   },
   "keywords": [
     "ticktick",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@types/node": "^25.5.2",
     "tsup": "^8.4.0",
+    "typedoc": "^0.28.18",
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"
   },

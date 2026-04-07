@@ -39,6 +39,7 @@ export type TickTickTask = {
   readonly repeatFlag?: string | null;
   readonly columnId?: string | null;
   readonly sortOrder?: number;
+  readonly pinnedTime?: string | null;
 };
 
 export type TickTickTaskDraft = {
@@ -50,6 +51,29 @@ export type TickTickTaskDraft = {
   readonly isAllDay?: boolean;
   readonly content?: string;
   readonly tags?: readonly string[];
+  readonly repeatFlag?: string | null;
+  readonly repeatEndDate?: string | null;
+};
+
+export type TickTickTaskMove = {
+  readonly taskId: string;
+  readonly fromProjectId: string;
+  readonly toProjectId: string;
+};
+
+export type TickTickTrashOptions = {
+  readonly limit?: number;
+  readonly type?: number;
+};
+
+export type TickTickTrashResponse = {
+  readonly tasks: readonly TickTickTask[];
+  readonly next: number;
+};
+
+export type TickTickCompletedTaskOptions = {
+  readonly status?: 'Completed' | 'Abandoned';
+  readonly projectId?: string;
 };
 
 export type TickTickTaskUpdate = TickTickTaskDraft & {
@@ -70,7 +94,31 @@ export type TickTickProject = {
   readonly sortOrder?: number;
 };
 
+export type TickTickProjectDraft = {
+  readonly name: string;
+  readonly color?: string;
+  readonly kind?: 'TASK' | 'NOTE';
+  readonly viewMode?: 'list' | 'kanban' | 'timeline';
+};
+
+export type TickTickColumn = {
+  readonly id: string;
+  readonly projectId: string;
+  readonly name: string;
+  readonly sortOrder?: number;
+  readonly createdTime?: string;
+  readonly modifiedTime?: string;
+};
+
 // ───────── Tag ─────────
+
+export type TickTickTagDraft = {
+  readonly name: string;
+  readonly label?: string;
+  readonly color?: string;
+  readonly parent?: string | null;
+  readonly sortOrder?: number;
+};
 
 export type TickTickTag = {
   readonly name: string;
@@ -107,7 +155,108 @@ export type TickTickHabitCheckin = {
   readonly status: 0 | 1 | 2; // unlabeled=0, undone=1, done=2
 };
 
+// ───────── User ─────────
+
+export type TickTickUserProfile = {
+  readonly username?: string;
+  readonly email?: string | null;
+  readonly name?: string | null;
+  readonly userId?: string;
+  readonly inboxId?: string;
+  readonly phone?: string | null;
+  readonly picture?: string;
+  readonly locale?: string;
+  readonly pro?: boolean;
+  readonly proEndDate?: string;
+};
+
+export type TickTickHabitDraft = {
+  readonly name: string;
+  readonly repeatRule: string;
+  readonly goal: number;
+  readonly step: number;
+  readonly unit: string;
+  readonly type: string;
+  readonly recordEnable: boolean;
+  readonly color?: string;
+  readonly iconRes?: string;
+  readonly sectionId?: string;
+};
+
+export type TickTickCheckinInput = {
+  readonly habitId: string;
+  readonly date: Date | number | string;
+  readonly value?: number;
+  readonly status?: 'done' | 'undone' | 'unlabeled';
+  readonly goal: number;
+};
+
+export type TickTickHabitWeekStats = Record<string, {
+  readonly totalHabitCount: number;
+  readonly completedHabitCount: number;
+}>;
+
+// ───────── Focus ─────────
+
+export type FocusStartOptions = {
+  readonly duration?: number;
+  readonly focusOnId?: string;
+  readonly focusOnTitle?: string | null;
+  readonly note?: string;
+  readonly manual?: boolean;
+};
+
+export type FocusState = {
+  readonly lastPoint: number;
+  readonly focusId: string | null;
+  readonly status: 'idle' | 'running' | 'paused' | null;
+  readonly duration: number;
+  readonly pomoCount: number;
+  readonly focusOnId: string | null;
+  readonly focusOnTitle: string | null;
+};
+
 // ───────── Statistics ─────────
+
+export type TickTickRanking = {
+  readonly ranking: number;
+  readonly taskCount: number;
+  readonly projectCount: number;
+  readonly dayCount: number;
+  readonly completedCount: number;
+  readonly score: number;
+  readonly level: number;
+};
+
+export type TickTickDailyStat = {
+  readonly day: string;
+  readonly completedCount: number;
+  readonly overdueCompleteCount: number;
+  readonly onTimeCompleteCount: number;
+  readonly pomoCount: number;
+  readonly pomoDuration: number;
+};
+
+export type TickTickCountdownType = 'countdown' | 'anniversary' | 'birthday' | 'holiday';
+
+export type TickTickCountdownDraft = {
+  readonly name: string;
+  readonly date: Date | number | string;
+  readonly type?: TickTickCountdownType;
+  readonly color?: string;
+  readonly ignoreYear?: boolean;
+  readonly remark?: string;
+};
+
+export type TickTickCountdown = {
+  readonly id: string;
+  readonly name: string;
+  readonly date: string;
+  readonly type?: TickTickCountdownType;
+  readonly color?: string;
+  readonly ignoreYear?: boolean;
+  readonly remark?: string;
+};
 
 export type TickTickSummary = {
   readonly score: number;
