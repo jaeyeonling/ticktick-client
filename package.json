@@ -1,6 +1,6 @@
 {
   "name": "ticktick-client",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Unofficial TickTick API client for Node.js",
   "type": "module",
   "main": "./dist/index.cjs",
