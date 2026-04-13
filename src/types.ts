@@ -40,6 +40,13 @@ export type TickTickTask = {
   readonly columnId?: string | null;
   readonly sortOrder?: number;
   readonly pinnedTime?: string | null;
+  /**
+   * Assigned user (shared projects only). Numeric TickTick userId.
+   * Absent on unshared projects and on unassigned tasks.
+   */
+  readonly assignee?: number | null;
+  /** User who originally created the task. Numeric TickTick userId. */
+  readonly creator?: number | null;
 };
 
 export type TickTickTaskDraft = {
@@ -53,6 +60,19 @@ export type TickTickTaskDraft = {
   readonly tags?: readonly string[];
   readonly repeatFlag?: string | null;
   readonly repeatEndDate?: string | null;
+  /**
+   * Project section / kanban column to place the task in. Exists on
+   * `TickTickTask` but was missing from the Draft surface — this adds
+   * it so `tasks.create({..., columnId})` lands the task in a specific
+   * section. Obtain valid values via `projects.listColumns(projectId)`.
+   */
+  readonly columnId?: string | null;
+  /**
+   * Assign the task to a specific shared-project member by numeric userId.
+   * Obtain valid userIds via `projects.listMembers(projectId)`. Pass null
+   * to explicitly leave unassigned.
+   */
+  readonly assignee?: number | null;
 };
 
 export type TickTickTaskMove = {
@@ -121,6 +141,36 @@ export type TickTickColumn = {
   readonly sortOrder?: number;
   readonly createdTime?: string;
   readonly modifiedTime?: string;
+};
+
+/**
+ * A member of a shared project. Returned by
+ * `projects.listMembers(projectId)`, which hits `/api/v2/project/{id}/users`.
+ *
+ * **Shared-only:** Personal (unshared) projects return an empty array from
+ * this endpoint. Members only appear once a project has been explicitly
+ * shared with another TickTick account.
+ *
+ * Verified 2026-04-12 via live traffic probe.
+ */
+export type TickTickProjectMember = {
+  /** Numeric TickTick userId — use for `TickTickTaskDraft.assignee`. */
+  readonly userId: number;
+  readonly displayName?: string | null;
+  readonly username?: string | null;
+  readonly avatarUrl?: string | null;
+  /** True for the project owner; false for invited members. */
+  readonly isOwner?: boolean;
+  /** Permission level: "read" | "write" | "comment" (string because the enum is open). */
+  readonly permission?: string;
+  /**
+   * Accept status. `1` = accepted, `0` = pending invite.
+   * Also surfaced more plainly via the normalized adapter layer;
+   * this is the raw value the API returns.
+   */
+  readonly acceptStatus?: number;
+  readonly createdTime?: string;
+  readonly userCode?: string;
 };
 
 // ───────── Tag ─────────

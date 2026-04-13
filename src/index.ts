@@ -29,6 +29,7 @@ export type {
   TickTickTaskPriority,
   TickTickProject,
   TickTickProjectDraft,
+  TickTickProjectMember,
   TickTickColumn,
   TickTickTag,
   TickTickTagDraft,
