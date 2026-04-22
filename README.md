@@ -92,6 +92,73 @@ The table below maps every major TickTick capability to its support status in th
 
 ---
 
+## MCP Server (Claude Integration)
+
+This package includes a built-in [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that lets **Claude Code** and **Claude Desktop** interact with your TickTick account through natural language.
+
+### Setup
+
+#### Claude Code
+
+```bash
+claude mcp add ticktick -e TICKTICK_USERNAME=you@example.com -e TICKTICK_PASSWORD=your-password -- npx -y ticktick-client
+```
+
+#### Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "ticktick": {
+      "command": "npx",
+      "args": ["-y", "ticktick-client"],
+      "env": {
+        "TICKTICK_USERNAME": "you@example.com",
+        "TICKTICK_PASSWORD": "your-password"
+      }
+    }
+  }
+}
+```
+
+### Available Tools (41)
+
+| Module | Tools |
+|--------|-------|
+| **Tasks** | `list_tasks`, `create_task`, `update_task`, `complete_task`, `delete_task`, `move_task`, `create_subtask`, `pin_task`, `unpin_task`, `list_completed_tasks` |
+| **Projects** | `list_projects`, `create_project`, `update_project`, `delete_project`, `list_columns`, `list_project_members` |
+| **Tags** | `list_tags`, `create_tag`, `update_tag`, `delete_tag`, `merge_tags` |
+| **Habits** | `list_habits`, `create_habit`, `update_habit`, `delete_habit`, `checkin_habit`, `get_habit_week_stats` |
+| **Focus** | `start_focus`, `pause_focus`, `resume_focus`, `finish_focus`, `stop_focus`, `get_focus_overview` |
+| **Statistics** | `get_ranking`, `list_completed_in_range` |
+| **User** | `get_user_profile`, `get_user_status` |
+| **Countdowns** | `list_countdowns`, `create_countdown`, `update_countdown`, `delete_countdown` |
+
+### Example Prompts
+
+Once configured, just talk to Claude naturally:
+
+- *"What tasks do I have today?"*
+- *"Create a task 'Review PR #37' in the Work project, due tomorrow, high priority"*
+- *"Mark 'Buy groceries' as complete"*
+- *"Start a 25-minute focus session"*
+- *"How are my habits going this week?"*
+- *"Show my productivity ranking"*
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|:--------:|-------------|
+| `TICKTICK_USERNAME` | Yes | TickTick account email |
+| `TICKTICK_PASSWORD` | Yes | TickTick account password |
+| `TICKTICK_SESSION_PATH` | No | Session file path (default: `~/.ticktick-mcp-session.json`) |
+| `TICKTICK_BASE_URL` | No | API base URL (for Dida365: `https://api.dida365.com`) |
+| `TICKTICK_TIME_ZONE` | No | Time zone override (default: system) |
+
+---
+
 ## Installation
 
 ```bash
@@ -477,6 +544,13 @@ ticktick-client/
       statistics.ts    # StatisticsModule — ranking, completed list
       countdowns.ts    # CountdownsModule — CRUD
       user.ts          # UserModule — profile, status
+    mcp/
+      index.ts         # MCP server entry point (stdio transport)
+      server.ts        # McpServer creation + LLM instructions
+      config.ts        # Environment variable loading
+      client-factory.ts # Config → TickTickClient instance
+      error-handler.ts # Error mapping + stripUndefined utility
+      tools/           # 41 MCP tool definitions (one file per module)
     types.ts           # All TypeScript type definitions
     errors.ts          # TickTickError, TickTickAuthError, TickTickApiError
     semantic.ts        # Human-readable label converters

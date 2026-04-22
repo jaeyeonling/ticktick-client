@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.session.json
+.*-session.json
 .env
 .env.local
 .omc/
