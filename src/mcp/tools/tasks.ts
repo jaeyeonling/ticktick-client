@@ -60,11 +60,11 @@ export function registerTaskTools(server: McpServer, client: TickTickClient): vo
 
   server.tool(
     'update_task',
-    'Update an existing task. Both id and projectId are required.',
+    'Update an existing task. Both id and projectId are required. Only include fields you want to change.',
     {
       id: z.string().describe('Task ID to update.'),
       projectId: z.string().describe('Project ID the task belongs to.'),
-      title: z.string().describe('Updated task title.'),
+      title: z.string().optional().describe('Updated task title. Omit to keep the current title.'),
       priority: z.union([z.literal(0), z.literal(1), z.literal(3), z.literal(5)]).optional().describe('Priority: 0=none, 1=low, 3=medium, 5=high.'),
       startDate: z.string().optional().describe('Start date in ISO 8601 format.'),
       dueDate: z.string().optional().describe('Due date in ISO 8601 format.'),
@@ -77,7 +77,8 @@ export function registerTaskTools(server: McpServer, client: TickTickClient): vo
     },
     async (args) => {
       try {
-        return jsonResult(await client.tasks.update(stripUndefined(args)));
+        const cleaned = stripUndefined(args);
+        return jsonResult(await client.tasks.update(cleaned as typeof cleaned & { title: string }));
       } catch (error) {
         return mapError(error);
       }

@@ -21,9 +21,9 @@ export function registerStatisticsTools(server: McpServer, client: TickTickClien
     'list_completed_in_range',
     'List tasks completed within a date range.',
     {
-      from: z.string().describe('Start date in ISO 8601 format (e.g. "2026-04-01T00:00:00+0000").'),
-      to: z.string().describe('End date in ISO 8601 format (e.g. "2026-04-22T23:59:59+0000").'),
-      limit: z.number().optional().describe('Maximum number of tasks to return.'),
+      from: z.string().datetime({ offset: true }).describe('Start date in ISO 8601 format (e.g. "2026-04-01T00:00:00+00:00").'),
+      to: z.string().datetime({ offset: true }).describe('End date in ISO 8601 format (e.g. "2026-04-22T23:59:59+00:00").'),
+      limit: z.number().int().positive().optional().describe('Maximum number of tasks to return.'),
     },
     async ({ from, to, limit }) => {
       try {
