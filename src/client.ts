@@ -1,7 +1,7 @@
 import { TickTickAuthError, TickTickApiError } from './errors.js';
 import {
   parseCookies,
-  parseExpiredCookieNames,
+  parseCookieChanges,
   serializeCookies,
   mergeCookies,
 } from './internal/cookies.js';
@@ -106,10 +106,16 @@ export class TickTickClient {
 
   // ───────── Auth ─────────
 
+  /**
+   * Signs in with the configured credentials and replaces the stored session.
+   * Concurrent callers share one in-flight signon. The stored session is
+   * loaded first so an existing `deviceId` is reused rather than replaced.
+   */
   async login(): Promise<void> {
     if (!this.#credentials) {
       throw new TickTickAuthError('No credentials provided.');
     }
+    await this.#loadSession();
     if (this.#loginInFlight) return this.#loginInFlight;
 
     this.#loginInFlight = this.#performLogin(this.#credentials).finally(() => {
@@ -150,12 +156,17 @@ export class TickTickClient {
     this.#loginGeneration += 1;
   }
 
+  /** Forgets the in-memory session and deletes it from the store. */
   async logout(): Promise<void> {
     this.#session = null;
     this.#sessionLoaded = false;
     await this.#sessionStore?.delete();
   }
 
+  /**
+   * Probes the profile endpoint with the current session. Returns `false` only
+   * for a session-expiry response; network and other API errors are rethrown.
+   */
   async isAuthenticated(): Promise<boolean> {
     await this.#loadSession();
     if (!this.#session) return false;
@@ -168,12 +179,17 @@ export class TickTickClient {
     }
   }
 
+  /** The session currently held in memory, or `null` before one is loaded or after logout. */
   getSession(): TickTickSession | null {
     return this.#session;
   }
 
   // ───────── Internal HTTP ─────────
 
+  /**
+   * Sends an authenticated request. On a session-expiry response (per
+   * `reauthenticateOn`) it re-logs in once and retries the request once.
+   */
   async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     await this.#ensureSession();
     const generationUsed = this.#loginGeneration;
@@ -219,16 +235,18 @@ export class TickTickClient {
       ...(body !== undefined && { body: JSON.stringify(body) }),
     });
 
-    // Merge cookies on every response to keep session alive
-    const newCookies = parseCookies(response.headers);
-    const expiredNames = parseExpiredCookieNames(response.headers);
-    if (this.#session && (Object.keys(newCookies).length > 0 || expiredNames.length > 0)) {
-      const updatedCsrfToken = newCookies['_csrf_token'] ?? this.#session.csrfToken;
+    // Merge cookies on every response to keep session alive. The token and
+    // csrfToken fields mirror the jar, so they are rebuilt from the merged
+    // result rather than carried over (a deleted cookie must clear its mirror).
+    const { set: newCookies, deleted } = parseCookieChanges(response.headers);
+    if (this.#session && (Object.keys(newCookies).length > 0 || deleted.length > 0)) {
+      const cookies = mergeCookies(this.#session.cookies, newCookies, deleted);
+      const { csrfToken: _dropped, ...rest } = this.#session;
       await this.#setSession({
-        ...this.#session,
-        token: newCookies['t'] ?? this.#session.token,
-        ...(updatedCsrfToken !== undefined && { csrfToken: updatedCsrfToken }),
-        cookies: mergeCookies(this.#session.cookies, newCookies, expiredNames),
+        ...rest,
+        token: cookies['t'] ?? '',
+        ...(cookies['_csrf_token'] !== undefined && { csrfToken: cookies['_csrf_token'] }),
+        cookies,
         updatedAt: new Date().toISOString(),
       });
     }
@@ -297,25 +315,37 @@ export class TickTickClient {
   }
 }
 
-const AUTH_ERROR_KEYWORDS = ['token', 'auth', 'login', 'sign_on', 'signon'] as const;
+/**
+ * `errorCode` fragments TickTick uses for a missing or invalid session.
+ * Only `errorCode` is inspected: free-text `errorMessage` values such as
+ * "not authorized" describe permissions, not expiry.
+ */
+const SESSION_EXPIRED_CODE_FRAGMENTS = [
+  'user_not_sign_on',
+  'sign_on',
+  'signon',
+  'token',
+  'login',
+] as const;
 
 /**
  * Default re-authentication policy.
  *
- * - 401 always means the session is gone.
+ * - 401 always means the session is gone (TickTick responds
+ *   `401 user_not_sign_on` for an invalid `t` cookie).
  * - 403 is ambiguous: TickTick also uses it for permission errors on shared
- *   projects, so only treat it as expiry when the body says so.
- * - Any other status is only expiry if the error code/message is auth-related.
+ *   projects, so only treat it as expiry when `errorCode` is a session code.
+ * - Any other status is never expiry; override `reauthenticateOn` if your
+ *   account observes different failure shapes.
  */
 export function isSessionExpiredError(err: TickTickApiError): boolean {
   if (err.status === 401) return true;
+  if (err.status !== 403) return false;
   if (!err.responseBody || typeof err.responseBody !== 'object') return false;
-  const body = err.responseBody as Record<string, unknown>;
-  const haystack = [body['errorCode'], body['errorMessage']]
-    .filter((v): v is string => typeof v === 'string')
-    .join(' ')
-    .toLowerCase();
-  return AUTH_ERROR_KEYWORDS.some((keyword) => haystack.includes(keyword));
+  const code = (err.responseBody as Record<string, unknown>)['errorCode'];
+  if (typeof code !== 'string') return false;
+  const normalized = code.toLowerCase();
+  return SESSION_EXPIRED_CODE_FRAGMENTS.some((fragment) => normalized.includes(fragment));
 }
 
 function buildXDevice(id: string): string {

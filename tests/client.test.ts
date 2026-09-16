@@ -335,6 +335,73 @@ describe('TickTickClient - re-authentication hardening', () => {
     expect(xDevice.id).toBe(saved?.deviceId);
   });
 
+  it('should reuse the stored deviceId when login() is called directly', async () => {
+    const store = new MemorySessionStore();
+    await store.save({ ...TEST_SESSION, deviceId: 'a1b2c3d4e5f6a1b2c3d4e5f6' });
+    const mockFetch = createMockFetch([LOGIN_OK]);
+    const client = new TickTickClient({
+      credentials: CREDENTIALS,
+      sessionStore: store,
+      fetch: mockFetch,
+    });
+
+    await client.login();
+
+    const headers = mockFetch.calls[0]?.[1]?.headers as Record<string, string>;
+    const xDevice = JSON.parse(headers['x-device'] ?? '{}') as { id: string };
+    expect(xDevice.id).toBe('a1b2c3d4e5f6a1b2c3d4e5f6');
+    expect((await store.load())?.deviceId).toBe('a1b2c3d4e5f6a1b2c3d4e5f6');
+  });
+
+  it('should clear the csrfToken mirror when the server deletes the _csrf_token cookie', async () => {
+    const store = new MemorySessionStore();
+    await store.save({
+      ...TEST_SESSION,
+      csrfToken: 'csrf',
+      cookies: { t: 'test-token', _csrf_token: 'csrf' },
+    });
+    const mockFetch = createMockFetch([
+      { ...LIST_OK, headers: { 'set-cookie': '_csrf_token=; Max-Age=0; Path=/' } },
+      LIST_OK,
+    ]);
+    const client = new TickTickClient({ sessionStore: store, fetch: mockFetch });
+
+    await client.tasks.list();
+    await client.tasks.list();
+
+    expect((await store.load())?.csrfToken).toBeUndefined();
+    const headers = mockFetch.calls[1]?.[1]?.headers as Record<string, string>;
+    expect(headers['x-csrftoken']).toBe('');
+  });
+
+  it('should not re-login on a 500 whose message merely mentions auth', async () => {
+    const mockFetch = createMockFetch([
+      { status: 500, body: { errorMessage: 'authentication service unavailable' } },
+    ]);
+    const client = new TickTickClient({
+      session: TEST_SESSION,
+      credentials: CREDENTIALS,
+      fetch: mockFetch,
+    });
+
+    await expect(client.tasks.list()).rejects.toThrow(TickTickApiError);
+    expect(loginCalls(mockFetch)).toBe(0);
+  });
+
+  it('should not re-login on a 403 "not authorized" permission message', async () => {
+    const mockFetch = createMockFetch([
+      { status: 403, body: { errorCode: 'no_permission', errorMessage: 'not authorized' } },
+    ]);
+    const client = new TickTickClient({
+      session: TEST_SESSION,
+      credentials: CREDENTIALS,
+      fetch: mockFetch,
+    });
+
+    await expect(client.tasks.list()).rejects.toThrow(TickTickApiError);
+    expect(loginCalls(mockFetch)).toBe(0);
+  });
+
   it('should drop cookies the server deleted from the persisted session', async () => {
     const store = new MemorySessionStore();
     await store.save({

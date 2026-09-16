@@ -46,26 +46,47 @@ function parseSetCookieEntries(headers: Headers): readonly SetCookieEntry[] {
   });
 }
 
+export type CookieChanges = {
+  /** Cookies that end this response with a live value. */
+  readonly set: Record<string, string>;
+  /** Cookies that end this response deleted. */
+  readonly deleted: readonly string[];
+};
+
+/**
+ * Folds every `Set-Cookie` of a response in header order so that the last
+ * operation on each name wins: a delete followed by a reissue keeps the new
+ * value, a set followed by a delete ends up deleted.
+ */
+export function parseCookieChanges(headers: Headers): CookieChanges {
+  const final = new Map<string, string | null>();
+  for (const entry of parseSetCookieEntries(headers)) {
+    final.set(entry.name, entry.isExpired ? null : entry.value);
+  }
+  return {
+    set: Object.fromEntries([...final].filter((kv): kv is [string, string] => kv[1] !== null)),
+    deleted: [...final].filter(([, v]) => v === null).map(([name]) => name),
+  };
+}
+
+/** Cookies a response leaves with a live value (see {@link parseCookieChanges}). */
 export function parseCookies(headers: Headers): Record<string, string> {
-  return Object.fromEntries(
-    parseSetCookieEntries(headers)
-      .filter((entry) => !entry.isExpired)
-      .map((entry) => [entry.name, entry.value]),
-  );
+  return parseCookieChanges(headers).set;
 }
 
+/** Cookie names a response leaves deleted (see {@link parseCookieChanges}). */
 export function parseExpiredCookieNames(headers: Headers): readonly string[] {
-  return parseSetCookieEntries(headers)
-    .filter((entry) => entry.isExpired)
-    .map((entry) => entry.name);
+  return parseCookieChanges(headers).deleted;
 }
 
+/** Renders a cookie jar as a `Cookie` request header value. */
 export function serializeCookies(cookies: Record<string, string>): string {
   return Object.entries(cookies)
     .map(([k, v]) => `${k}=${v}`)
     .join('; ');
 }
 
+/** Returns `base` overlaid with `next`, minus every name in `expiredNames`. Never mutates inputs. */
 export function mergeCookies(
   base: Record<string, string>,
   next: Record<string, string>,

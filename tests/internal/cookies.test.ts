@@ -98,6 +98,24 @@ describe('parseExpiredCookieNames', () => {
   });
 });
 
+describe('parseCookies - order within one response', () => {
+  it('should keep a cookie reissued after being deleted in the same response', () => {
+    const headers = new Headers();
+    headers.append('set-cookie', 't=; Max-Age=0; Path=/');
+    headers.append('set-cookie', 't=fresh; Path=/');
+    expect(parseCookies(headers)).toEqual({ t: 'fresh' });
+    expect(parseExpiredCookieNames(headers)).toEqual([]);
+  });
+
+  it('should treat a cookie deleted after being set in the same response as deleted', () => {
+    const headers = new Headers();
+    headers.append('set-cookie', 't=stale; Path=/');
+    headers.append('set-cookie', 't=; Max-Age=0; Path=/');
+    expect(parseCookies(headers)).toEqual({});
+    expect(parseExpiredCookieNames(headers)).toEqual(['t']);
+  });
+});
+
 describe('mergeCookies - removal', () => {
   it('should remove expired cookie names from the result', () => {
     expect(mergeCookies({ t: 'old', a: '1' }, { b: '2' }, ['t'])).toEqual({
