@@ -6,9 +6,10 @@ export class TickTickError extends Error {
 }
 
 export class TickTickAuthError extends TickTickError {
-  constructor(message: string) {
+  constructor(message: string, options?: { readonly cause?: unknown }) {
     super(message);
     this.name = 'TickTickAuthError';
+    if (options?.cause !== undefined) this.cause = options.cause;
   }
 }
 
