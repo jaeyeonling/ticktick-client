@@ -1,5 +1,6 @@
 export { TickTickClient } from './client.js';
 export type { TickTickClientOptions } from './client.js';
+export { isSessionExpiredError } from './client.js';
 
 export { MemorySessionStore, FileSessionStore } from './session-store.js';
 export type { TickTickSessionStore } from './session-store.js';

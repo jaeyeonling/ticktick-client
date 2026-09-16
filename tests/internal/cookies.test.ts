@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseCookies, serializeCookies, mergeCookies } from '../../src/internal/cookies.js';
+import {
+  parseCookies,
+  parseExpiredCookieNames,
+  serializeCookies,
+  mergeCookies,
+} from '../../src/internal/cookies.js';
 
 describe('parseCookies', () => {
   it('should parse a single set-cookie header', () => {
@@ -57,5 +62,47 @@ describe('mergeCookies', () => {
   it('should handle empty objects', () => {
     expect(mergeCookies({}, { t: 'abc' })).toEqual({ t: 'abc' });
     expect(mergeCookies({ t: 'abc' }, {})).toEqual({ t: 'abc' });
+  });
+});
+
+describe('parseCookies - expiry', () => {
+  it('should drop cookies deleted via Max-Age=0', () => {
+    const headers = new Headers({ 'set-cookie': 't=; Max-Age=0; Path=/' });
+    expect(parseCookies(headers)).toEqual({});
+  });
+
+  it('should drop cookies with an Expires date in the past', () => {
+    const headers = new Headers({
+      'set-cookie': 't=stale; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/',
+    });
+    expect(parseCookies(headers)).toEqual({});
+  });
+
+  it('should keep cookies with a future Expires date', () => {
+    const headers = new Headers({
+      'set-cookie': 't=fresh; Expires=Fri, 01 Jan 2100 00:00:00 GMT; Path=/',
+    });
+    expect(parseCookies(headers)).toEqual({ t: 'fresh' });
+  });
+});
+
+describe('parseExpiredCookieNames', () => {
+  it('should list names of cookies the server deleted', () => {
+    const headers = new Headers({ 'set-cookie': 't=; Max-Age=0; Path=/' });
+    expect(parseExpiredCookieNames(headers)).toEqual(['t']);
+  });
+
+  it('should return empty array when nothing expired', () => {
+    const headers = new Headers({ 'set-cookie': 't=abc; Path=/' });
+    expect(parseExpiredCookieNames(headers)).toEqual([]);
+  });
+});
+
+describe('mergeCookies - removal', () => {
+  it('should remove expired cookie names from the result', () => {
+    expect(mergeCookies({ t: 'old', a: '1' }, { b: '2' }, ['t'])).toEqual({
+      a: '1',
+      b: '2',
+    });
   });
 });

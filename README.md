@@ -223,6 +223,27 @@ const client = new TickTickClient({
 });
 ```
 
+### Automatic Re-authentication
+
+When `credentials` are provided, an expired session is recovered transparently:
+
+- A `401`, or any response whose `errorCode`/`errorMessage` is auth-related, triggers one re-login and one retry of the original request.
+- Concurrent requests that expire together share a **single** signon call, so bursts never trip TickTick's login rate limit.
+- The `x-device` id is persisted in the session (`deviceId`) and reused across restarts, so stored cookies stay bound to the same device.
+- Cookies the server deletes (`Max-Age=0` / past `Expires`) are removed from the stored session instead of being kept as empty values.
+- A failed re-login throws `TickTickAuthError` with the underlying error available as `error.cause`.
+
+A plain `403` is treated as a permission error, not expiry. Override the policy if your account sees different failure shapes:
+
+```typescript
+import { TickTickClient, isSessionExpiredError } from 'ticktick-client';
+
+const client = new TickTickClient({
+  credentials: { username: '...', password: '...' },
+  reauthenticateOn: (err) => err.status === 500 || isSessionExpiredError(err),
+});
+```
+
 ---
 
 ## API Reference

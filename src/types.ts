@@ -5,6 +5,8 @@ export type TickTickSession = {
   readonly token: string;
   readonly csrfToken?: string;
   readonly cookies: Record<string, string>;
+  /** Stable device id sent as `x-device`; reused so the server sees the same client across restarts. */
+  readonly deviceId?: string;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
