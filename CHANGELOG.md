@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-09-16
+
+### Added
+
+- `reauthenticateOn` client option to override the session-expiry policy; default `isSessionExpiredError` is exported (#39)
+- `deviceId` on `TickTickSession` so the `x-device` id survives restarts when a persistent session store is used (#39)
+
+### Changed
+
+- `isAuthenticated()` now rethrows network and non-auth API errors instead of returning `false` (#39)
+- A plain `403` is treated as a permission error; only `401`, or `403` with a session `errorCode`, triggers re-login (#39)
+
+### Fixed
+
+- Concurrent requests hitting an expired session share a single signon call instead of one per request, avoiding TickTick's login rate limit (#39)
+- Cookies deleted by the server (`Max-Age=0` / past `Expires`) are removed from the stored session; `token` and `csrfToken` are rebuilt from the merged cookie jar (#39)
+- Re-authentication failures expose the underlying error via `TickTickAuthError.cause` (#39)
+
+## [0.3.0] - 2026-04-22
+
+### Added
+
+- MCP server support (#37)
+
 ## [0.2.2] - 2026-04-13
 
 ### Added
