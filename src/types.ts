@@ -111,7 +111,12 @@ export type TickTickCompletedTaskOptions = {
   readonly projectId?: string;
 };
 
-export type TickTickTaskUpdate = TickTickTaskDraft & {
+/**
+ * Partial task update. `id` and `projectId` identify the task; every other
+ * field is optional. Omitted fields are preserved. Pass `null` to clear a
+ * nullable field such as `dueDate`.
+ */
+export type TickTickTaskUpdate = Partial<TickTickTaskDraft> & {
   readonly id: string;
   readonly projectId: string;
 };
