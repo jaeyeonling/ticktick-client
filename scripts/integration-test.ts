@@ -160,6 +160,21 @@ async function testTasks() {
   } catch (e) { fail('update()', e); }
 
   try {
+    const withDue = await client.tasks.create({
+      title: `${TEST_PREFIX} update-preserve-due`,
+      projectId,
+      dueDate: '2026-09-20T00:00:00.000+0000',
+      isAllDay: true,
+    });
+    await client.tasks.update({ id: withDue.id, projectId, priority: 5 });
+    const after = await client.tasks.get(withDue.id, projectId);
+    if (!after.dueDate) throw new Error(`update() wiped dueDate`);
+    if (after.priority !== 5) throw new Error(`update() did not apply priority: ${after.priority}`);
+    ok(`update() preserved dueDate (${after.dueDate})`);
+    await client.tasks.delete(projectId, withDue.id);
+  } catch (e) { fail('update() preserved dueDate', e); }
+
+  try {
     await client.tasks.delete(projectId, taskId!);
     ok('delete()');
     taskId = null;
@@ -167,9 +182,19 @@ async function testTasks() {
 
   // complete (separate task, cleanup with deleteMany)
   try {
-    const t2 = await client.tasks.create({ title: `${TEST_PREFIX} for-complete`, projectId });
+    const t2 = await client.tasks.create({
+      title: `${TEST_PREFIX} for-complete`,
+      projectId,
+      dueDate: '2026-09-20T00:00:00.000+0000',
+      startDate: '2026-09-20T00:00:00.000+0000',
+      isAllDay: true,
+    });
     await client.tasks.complete(projectId, t2.id);
-    ok('complete()');
+    const done = await client.tasks.get(t2.id, projectId);
+    if (done.status !== 2) throw new Error(`status ${done.status}, expected 2`);
+    if (!done.dueDate) throw new Error('complete() wiped dueDate');
+    if (!done.startDate) throw new Error('complete() wiped startDate');
+    ok(`complete() preserved dueDate (${done.dueDate})`);
     await client.tasks.deleteMany([{ taskId: t2.id, projectId }]);
   } catch (e) { fail('complete()', e); }
 

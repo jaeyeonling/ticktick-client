@@ -16,12 +16,19 @@ describe('TasksModule - batch operations (#3)', () => {
     expect(body0.id).toMatch(/^[0-9a-f]{24}$/);
   });
 
-  it('updateMany() should POST each task individually to /api/v2/task/{id}', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
+  it('updateMany() should GET then POST each task individually to /api/v2/task/{id}', async () => {
+    const existing = { id: 't1', projectId: 'p1', title: 'Original', status: 0, dueDate: '2026-09-16T00:00:00.000+0000' };
+    const { client, mockFetch } = createClient([
+      { status: 200, body: existing },
+      { status: 200, body: {} },
+    ]);
     await client.tasks.updateMany([{ id: 't1', projectId: 'p1', title: 'Updated' }]);
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/task/t1');
-    const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
+    expect(mockFetch.calls[0]![1]?.method).toBe('GET');
+    expect(mockFetch.calls[1]![0]).toContain('/api/v2/task/t1');
+    const body = JSON.parse(mockFetch.calls[1]![1]?.body as string);
     expect(body.id).toBe('t1');
+    expect(body.title).toBe('Updated');
+    expect(body.dueDate).toBe(existing.dueDate);
   });
 
   it('deleteMany() should POST status:-1 to each /api/v2/task/{id}', async () => {
@@ -114,15 +121,28 @@ describe('TasksModule - move (#4)', () => {
 
 // ───────── #5 Subtask support ─────────
 describe('TasksModule - subtasks (#5)', () => {
-  it('createSubtask() should POST parent task with items array', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
+  it('createSubtask() should POST parent task with items appended to existing', async () => {
+    const existing = {
+      id: 'parentId',
+      projectId: 'projId',
+      title: 'Parent',
+      status: 0,
+      dueDate: '2026-09-16T00:00:00.000+0000',
+      items: [{ id: 'olditem', title: 'Existing item', status: 0 }],
+    };
+    const { client, mockFetch } = createClient([
+      { status: 200, body: existing },
+      { status: 200, body: {} },
+    ]);
     await client.tasks.createSubtask('parentId', 'projId', { title: 'Subtask A' });
-    const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
-    expect(body.items).toHaveLength(1);
-    expect(body.items[0].title).toBe('Subtask A');
-    expect(body.items[0].id).toMatch(/^[0-9a-f]{24}$/);
+    const body = JSON.parse(mockFetch.calls[1]![1]?.body as string);
+    expect(body.items).toHaveLength(2);
+    expect(body.items[0].title).toBe('Existing item');
+    expect(body.items[1].title).toBe('Subtask A');
+    expect(body.items[1].id).toMatch(/^[0-9a-f]{24}$/);
     expect(body.id).toBe('parentId');
     expect(body.projectId).toBe('projId');
+    expect(body.dueDate).toBe(existing.dueDate);
   });
 });
 
@@ -153,29 +173,44 @@ describe('TasksModule - recurrence (#6)', () => {
 // ───────── #7 Pin / Unpin ─────────
 describe('TasksModule - pin/unpin (#7)', () => {
   it('pin() should POST to /api/v2/task/{id} with pinnedTime', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
+    const existing = { id: 't1', projectId: 'p1', title: 'Task', status: 0, dueDate: '2026-09-16T00:00:00.000+0000' };
+    const { client, mockFetch } = createClient([
+      { status: 200, body: existing },
+      { status: 200, body: {} },
+    ]);
     const date = new Date('2026-04-07T00:00:00Z');
     await client.tasks.pin('t1', 'p1', date);
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/task/t1');
-    const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
+    expect(mockFetch.calls[1]![0]).toContain('/api/v2/task/t1');
+    const body = JSON.parse(mockFetch.calls[1]![1]?.body as string);
     expect(body.id).toBe('t1');
     expect(body.pinnedTime).toBeDefined();
+    expect(body.dueDate).toBe(existing.dueDate);
+    expect(body.title).toBe('Task');
   });
 
   it('pin() without date should use current time', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
+    const existing = { id: 't1', projectId: 'p1', title: 'Task', status: 0 };
+    const { client, mockFetch } = createClient([
+      { status: 200, body: existing },
+      { status: 200, body: {} },
+    ]);
     await client.tasks.pin('t1', 'p1');
-    const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
+    const body = JSON.parse(mockFetch.calls[1]![1]?.body as string);
     expect(body.pinnedTime).toBeDefined();
   });
 
   it('unpin() should POST to /api/v2/task/{id} with pinnedTime null', async () => {
-    const { client, mockFetch } = createClient([{ status: 200, body: {} }]);
+    const existing = { id: 't1', projectId: 'p1', title: 'Task', status: 0, dueDate: '2026-09-16T00:00:00.000+0000' };
+    const { client, mockFetch } = createClient([
+      { status: 200, body: existing },
+      { status: 200, body: {} },
+    ]);
     await client.tasks.unpin('t1', 'p1');
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/task/t1');
-    const body = JSON.parse(mockFetch.calls[0]![1]?.body as string);
+    expect(mockFetch.calls[1]![0]).toContain('/api/v2/task/t1');
+    const body = JSON.parse(mockFetch.calls[1]![1]?.body as string);
     expect(body.id).toBe('t1');
     expect(body.pinnedTime).toBeNull();
+    expect(body.dueDate).toBe(existing.dueDate);
   });
 });
 

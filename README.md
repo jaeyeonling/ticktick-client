@@ -17,6 +17,7 @@ The table below maps every major TickTick capability to its support status in th
 | Category | Feature | Status | Method |
 |----------|---------|:------:|--------|
 | **Tasks** | List all tasks | :white_check_mark: | `tasks.list()` |
+| | Get task | :white_check_mark: | `tasks.get(taskId, projectId)` |
 | | Create task | :white_check_mark: | `tasks.create(draft)` |
 | | Update task | :white_check_mark: | `tasks.update(params)` |
 | | Complete task | :white_check_mark: | `tasks.complete(projectId, taskId)` |
@@ -263,7 +264,11 @@ const task = await client.tasks.create({
   tags: ['shopping'],
 });
 
-// Update
+// Fetch one task
+const fetched = await client.tasks.get(task.id, task.projectId);
+
+// Update — omitted fields are preserved (the API is a full replace;
+// the client reads the current task and merges before saving)
 await client.tasks.update({
   id: task.id,
   projectId: task.projectId,

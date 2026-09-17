@@ -16,12 +16,28 @@ type BatchCheckResponse = {
   };
 };
 
+function omitUndefined(obj: object): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined));
+}
+
 export class TasksModule {
   constructor(private readonly client: TickTickClient) {}
 
   async list(): Promise<readonly TickTickTask[]> {
     const response = await this.client.request<BatchCheckResponse>('GET', '/api/v3/batch/check/0');
     return response.syncTaskBean?.update ?? [];
+  }
+
+  /**
+   * Fetch a single task. Verified via traffic capture:
+   * `GET /api/v2/task/{id}?projectId=…` returns the full task object.
+   */
+  async get(taskId: string, projectId: string): Promise<TickTickTask> {
+    const params = new URLSearchParams({ projectId });
+    return this.client.request<TickTickTask>(
+      'GET',
+      `/api/v2/task/${taskId}?${params.toString()}`,
+    );
   }
 
   async listCompleted(options?: {
@@ -45,13 +61,13 @@ export class TasksModule {
   }
 
   async update(params: TickTickTaskUpdate): Promise<TickTickTask> {
-    return this.client.request<TickTickTask>('POST', `/api/v2/task/${params.id}`, params);
+    const { id, projectId, ...patch } = params;
+    return this.write(id, projectId, omitUndefined(patch));
   }
 
+  /** Mark the task complete. Existing fields (dueDate, startDate, …) are preserved. */
   async complete(projectId: string, taskId: string): Promise<void> {
-    await this.client.request('POST', `/api/v2/task/${taskId}`, {
-      id: taskId,
-      projectId,
+    await this.write(taskId, projectId, {
       status: 2,
       completedTime: new Date().toISOString().replace('Z', '+0000'),
     });
@@ -59,6 +75,27 @@ export class TasksModule {
 
   async delete(projectId: string, taskId: string): Promise<void> {
     await this.client.request('POST', `/api/v2/task/${taskId}`, { id: taskId, projectId, status: -1 });
+  }
+
+  /**
+   * `POST /api/v2/task/{id}` replaces the task with the payload — omitted
+   * fields (dueDate, startDate, title, tags, …) are cleared server-side.
+   * Confirmed 2026-09-17: a status-only complete wiped dueDate on 53/53 tasks.
+   * Always GET the current task and merge before writing.
+   */
+  private async write(
+    taskId: string,
+    projectId: string,
+    patch: Record<string, unknown> | ((existing: TickTickTask) => Record<string, unknown>),
+  ): Promise<TickTickTask> {
+    const existing = await this.get(taskId, projectId);
+    const updates = typeof patch === 'function' ? patch(existing) : patch;
+    return this.client.request<TickTickTask>('POST', `/api/v2/task/${taskId}`, {
+      ...existing,
+      ...updates,
+      id: taskId,
+      projectId,
+    });
   }
 
   // ───────── #3 Batch operations ─────────
@@ -72,9 +109,7 @@ export class TasksModule {
   }
 
   async updateMany(params: readonly TickTickTaskUpdate[]): Promise<void> {
-    await Promise.all(
-      params.map((p) => this.client.request('POST', `/api/v2/task/${p.id}`, p)),
-    );
+    await Promise.all(params.map((p) => this.update(p)));
   }
 
   async deleteMany(items: readonly { taskId: string; projectId: string }[]): Promise<void> {
@@ -159,29 +194,24 @@ export class TasksModule {
     parentProjectId: string,
     draft: { title: string; sortOrder?: number },
   ): Promise<TickTickTask> {
-    return this.client.request<TickTickTask>('POST', `/api/v2/task/${parentTaskId}`, {
-      id: parentTaskId,
-      projectId: parentProjectId,
-      items: [{ id: generateObjectId(), title: draft.title, status: 0, sortOrder: draft.sortOrder ?? 0 }],
-    });
+    return this.write(parentTaskId, parentProjectId, (existing) => ({
+      items: [
+        ...(existing.items ?? []),
+        { id: generateObjectId(), title: draft.title, status: 0, sortOrder: draft.sortOrder ?? 0 },
+      ],
+    }));
   }
 
   // ───────── #7 Pin / Unpin ─────────
 
   async pin(taskId: string, projectId: string, date?: Date): Promise<void> {
-    await this.client.request('POST', `/api/v2/task/${taskId}`, {
-      id: taskId,
-      projectId,
+    await this.write(taskId, projectId, {
       pinnedTime: (date ?? new Date()).toISOString(),
     });
   }
 
   async unpin(taskId: string, projectId: string): Promise<void> {
-    await this.client.request('POST', `/api/v2/task/${taskId}`, {
-      id: taskId,
-      projectId,
-      pinnedTime: null,
-    });
+    await this.write(taskId, projectId, { pinnedTime: null });
   }
 
   // ───────── #8 Trash ─────────
@@ -216,7 +246,8 @@ export class TasksModule {
    *
    * **⚠️ Known limitation:** Since {@link listTrash} cannot reliably retrieve
    * deleted task IDs, this method requires you to know the task ID beforehand
-   * (e.g., saved before deletion).
+   * (e.g., saved before deletion). Does not merge with a prior GET — deleted
+   * tasks are not retrievable via {@link get}.
    */
   async restore(taskId: string, projectId: string): Promise<void> {
     await this.client.request('POST', `/api/v2/task/${taskId}`, { id: taskId, projectId, status: 0 });

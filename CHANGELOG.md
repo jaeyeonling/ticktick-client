@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `tasks.get(taskId, projectId)` — fetch a single task via `GET /api/v2/task/{id}`
+
+### Changed
+
+- `TickTickTaskUpdate.title` (and other draft fields) are optional, so partial updates type-check without a dummy title
+
+### Fixed
+
+- `tasks.complete()` no longer wipes `dueDate`, `startDate`, and other omitted fields. `POST /api/v2/task/{id}` is a full replace, so complete / update / updateMany / pin / unpin / createSubtask now read the current task and merge before saving. Live-checked 2026-09-17: `get()` after complete keeps dueDate/startDate/tags/content; a daily RRULE task keeps dueDate and repeatFlag on the completed occurrence. REST complete still does not spawn the next rrule occurrence (same as the previous partial POST).
+
 ## [0.4.0] - 2026-09-16
 
 ### Added

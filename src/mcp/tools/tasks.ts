@@ -77,8 +77,7 @@ export function registerTaskTools(server: McpServer, client: TickTickClient): vo
     },
     async (args) => {
       try {
-        const cleaned = stripUndefined(args);
-        return jsonResult(await client.tasks.update(cleaned as typeof cleaned & { title: string }));
+        return jsonResult(await client.tasks.update(stripUndefined(args)));
       } catch (error) {
         return mapError(error);
       }
