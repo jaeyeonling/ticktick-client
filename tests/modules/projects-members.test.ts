@@ -75,13 +75,18 @@ describe('ProjectsModule.listColumns() — response shape fix', () => {
     expect(columns).toHaveLength(2);
   });
 
-  it('should client-side filter by projectId when requested (server-side filter is ignored)', async () => {
-    const { client } = createClient([
-      { status: 200, body: { update: [col1, col2] } },
-    ]);
+  it('should GET the per-project path and return the bare array', async () => {
+    const { client, mockFetch } = createClient([{ status: 200, body: [col1] }]);
     const columns = await client.projects.listColumns('projA');
-    expect(columns).toHaveLength(1);
-    expect(columns[0]?.id).toBe('col1');
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/column/project/projA');
+    expect(mockFetch.calls[0]![0]).not.toContain('from=');
+    expect(columns).toEqual([col1]);
+  });
+
+  it('should unwrap an envelope from the per-project path if the server sends one', async () => {
+    const { client } = createClient([{ status: 200, body: { update: [col1] } }]);
+    const columns = await client.projects.listColumns('projA');
+    expect(columns).toEqual([col1]);
   });
 
   it('should return empty array when the wrapper is empty', async () => {

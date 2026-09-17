@@ -93,7 +93,11 @@ async function testProjects() {
 
   try {
     const cols = await client.projects.listColumns(projectId!);
-    ok(`listColumns() → ${Array.isArray(cols) ? cols.length : 0} columns`);
+    if (!Array.isArray(cols)) throw new Error(`listColumns(projectId) did not return an array`);
+    ok(`listColumns(projectId) → ${cols.length} columns`);
+    const all = await client.projects.listColumns();
+    if (!Array.isArray(all)) throw new Error(`listColumns() did not return an array`);
+    ok(`listColumns() → ${all.length} columns`);
   } catch (e) { fail('listColumns()', e); }
 
   try {
