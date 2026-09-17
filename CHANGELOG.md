@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `TickTickTaskUpdate.title` (and other draft fields) are optional, so partial updates type-check without a dummy title
+- `projects.listColumns(projectId)` calls `GET /api/v2/column/project/{id}` instead of the bulk sync endpoint plus a client-side filter. `listColumns()` with no argument still uses `GET /api/v2/column?from=0` (#40). Live-checked 2026-09-17: the per-project path returned columns for 5/5 projects; bulk `from=0` was empty for the same account.
 
 ### Fixed
 

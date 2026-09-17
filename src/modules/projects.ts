@@ -8,15 +8,18 @@ import type {
 } from '../types.js';
 
 /**
- * Raw response shape for `GET /api/v2/column`. The endpoint returns a
- * wrapper object, not a bare array — historical bug: the library used to
- * type this as `readonly TickTickColumn[]` and return whatever the server
- * sent, which caused callers to get `{update: [...]}` at runtime instead
- * of an array. Fixed in `listColumns` by unwrapping.
+ * Raw response shape for `GET /api/v2/column?from=0`. That path is a bulk
+ * column-sync endpoint and returns `{update: TickTickColumn[]}`, not a
+ * bare array. The per-project path returns a bare array.
  */
 type RawColumnsResponse = {
   readonly update?: readonly TickTickColumn[];
 };
+
+function unwrapColumns(raw: unknown): readonly TickTickColumn[] {
+  if (Array.isArray(raw)) return raw as readonly TickTickColumn[];
+  return (raw as RawColumnsResponse).update ?? [];
+}
 
 export class ProjectsModule {
   constructor(private readonly client: TickTickClient) {}
@@ -54,33 +57,27 @@ export class ProjectsModule {
   /**
    * List kanban columns.
    *
-   * **Response shape fix (2026-04-12):** The TickTick API returns a wrapper
-   * object `{update: TickTickColumn[]}`, not a bare array. Previously this
-   * method's return type advertised `readonly TickTickColumn[]` but the
-   * actual value at runtime was the wrapper — callers calling `.map()` on
-   * the result got `TypeError: undefined is not a function`. This version
-   * unwraps and returns the actual column array.
+   * - `listColumns(projectId)` → `GET /api/v2/column/project/{projectId}`
+   *   (bare array of that project's columns).
+   * - `listColumns()` → `GET /api/v2/column?from=0` (bulk sync; response is
+   *   `{update: [...]}` and is unwrapped here).
    *
-   * **Projection filter (2026-04-12):** The server-side `projectId` query
-   * parameter is **not honored** — passing it does NOT filter to a single
-   * project's columns. The endpoint always returns all columns across all
-   * projects. When `projectId` is provided, this method now filters client-
-   * side for the expected subset.
+   * `?projectId=` on the bulk endpoint is not part of the API contract and
+   * is not sent. The previous client-side filter was compensating for that
+   * misunderstanding, not a server-side ignore.
    */
   async listColumns(projectId?: string): Promise<readonly TickTickColumn[]> {
-    const params = new URLSearchParams({ from: '0' });
-    if (projectId) params.set('projectId', projectId);
-    const raw = await this.client.request<unknown>(
-      'GET',
-      `/api/v2/column?${params.toString()}`,
-    );
-    const columns: readonly TickTickColumn[] = Array.isArray(raw)
-      ? (raw as readonly TickTickColumn[])
-      : ((raw as RawColumnsResponse).update ?? []);
     if (projectId) {
-      return columns.filter((c) => c.projectId === projectId);
+      return unwrapColumns(
+        await this.client.request<unknown>(
+          'GET',
+          `/api/v2/column/project/${encodeURIComponent(projectId)}`,
+        ),
+      );
     }
-    return columns;
+    return unwrapColumns(
+      await this.client.request<unknown>('GET', '/api/v2/column?from=0'),
+    );
   }
 
   /**

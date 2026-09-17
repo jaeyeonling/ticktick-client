@@ -46,11 +46,11 @@ describe('ProjectsModule - CRUD (#10)', () => {
 
 // ───────── #11 Kanban columns ─────────
 describe('ProjectsModule - listColumns (#11)', () => {
-  it('should GET /api/v2/column?from=0', async () => {
+  it('should GET /api/v2/column?from=0 when no projectId is given', async () => {
     const { client, mockFetch } = createClient([{ status: 200, body: [] }]);
     await client.projects.listColumns();
-    expect(mockFetch.calls[0]![0]).toContain('/api/v2/column');
-    expect(mockFetch.calls[0]![0]).toContain('from=0');
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/column?from=0');
+    expect(mockFetch.calls[0]![1]?.method).toBe('GET');
   });
 
   it('should return list of columns', async () => {
@@ -61,10 +61,13 @@ describe('ProjectsModule - listColumns (#11)', () => {
     expect(columns[0]?.name).toBe('To Do');
   });
 
-  it('should filter by projectId when provided', async () => {
+  it('should GET /api/v2/column/project/{id} when projectId is given', async () => {
     const col = { id: 'col1', projectId: 'proj1', name: 'To Do' };
     const { client, mockFetch } = createClient([{ status: 200, body: [col] }]);
-    await client.projects.listColumns('proj1');
-    expect(mockFetch.calls[0]![0]).toContain('projectId=proj1');
+    const columns = await client.projects.listColumns('proj1');
+    expect(mockFetch.calls[0]![0]).toContain('/api/v2/column/project/proj1');
+    expect(mockFetch.calls[0]![0]).not.toContain('projectId=');
+    expect(columns).toHaveLength(1);
+    expect(columns[0]?.name).toBe('To Do');
   });
 });

@@ -369,8 +369,9 @@ await client.projects.update({ id: project.id, name: 'Work 2026' });
 await client.projects.delete(project.id);
 await client.projects.deleteMany([id1, id2]);
 
-// Kanban columns
+// Kanban columns — per-project endpoint when an id is passed
 const columns = await client.projects.listColumns(project.id);
+const allColumns = await client.projects.listColumns();
 ```
 
 ### Tags
